@@ -51,6 +51,7 @@ export interface PersistedState {
   soundEnabled: boolean;
   reminderTime: string | null; // HH:MM, local
   focusMode: boolean; // sem distração
+  infiniteHearts: boolean; // vida infinita
 
   // Progress
   lessonProgress: Record<string, LessonProgress>; // key = `${chapterId}/${lessonId}`
@@ -81,6 +82,7 @@ export interface GameState extends PersistedState {
   unlockChapter: (chapterId: string) => void;
   setTheme: (t: "light" | "dark" | "system") => void;
   setFocusMode: (v: boolean) => void;
+  setInfiniteHearts: (v: boolean) => void;
   setDailyGoal: (xp: number) => void;
   setReminderTime: (t: string | null) => void;
   setUsername: (n: string) => void;
@@ -143,6 +145,7 @@ const initial: PersistedState = {
   soundEnabled: true,
   reminderTime: null,
   focusMode: false,
+  infiniteHearts: true,
 
   lessonProgress: {},
   chapterUnlocked: { "01-medicao": true },
@@ -223,7 +226,8 @@ export const useGame = create<GameState>()(
       addCoins: (amount) => set({ coins: get().coins + amount }),
 
       loseHeart: () => {
-        const { hearts } = get();
+        const { hearts, infiniteHearts } = get();
+        if (infiniteHearts) return;
         if (hearts <= 0) return;
         set({ hearts: hearts - 1, lastHeartRegenAt: Date.now() });
       },
@@ -293,6 +297,7 @@ export const useGame = create<GameState>()(
 
       setTheme: (t) => set({ theme: t }),
       setFocusMode: (v) => set({ focusMode: v }),
+      setInfiniteHearts: (v) => set({ infiniteHearts: v, hearts: v ? get().maxHearts : get().hearts }),
       setDailyGoal: (n) => set({ dailyGoalXp: n }),
       setReminderTime: (t) => set({ reminderTime: t }),
       setUsername: (n) => set({ username: n }),
@@ -340,7 +345,14 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "fisifun-state",
-      version: 1,
+      version: 2,
+      migrate: (persisted: unknown, version: number) => {
+        const s = (persisted as Partial<PersistedState>) ?? {};
+        if (version < 2) {
+          return { ...s, infiniteHearts: true } as PersistedState;
+        }
+        return s as PersistedState;
+      },
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => {
         // exclude action fns implicitly since zustand persist only serializes data

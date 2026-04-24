@@ -15,6 +15,7 @@ export function GameBar() {
   const hearts = useGame((s) => s.hearts);
   const maxHearts = useGame((s) => s.maxHearts);
   const coins = useGame((s) => s.coins);
+  const infiniteHearts = useGame((s) => s.infiniteHearts);
 
   const { total, nextNeed } = xpForLevel(level);
   const inLevel = xp - total;
@@ -30,9 +31,9 @@ export function GameBar() {
         <span className="text-sm font-bold">{streak}</span>
       </div>
       <div className="flex items-center gap-1.5 rounded-full bg-rose-500/10 px-3 py-1 text-rose-600 dark:text-rose-300">
-        <Heart size={16} />
+        <Heart size={16} fill={infiniteHearts ? "currentColor" : "none"} />
         <span className="text-sm font-bold">
-          {hearts}/{maxHearts}
+          {infiniteHearts ? "∞" : `${hearts}/${maxHearts}`}
         </span>
       </div>
       <div className="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-amber-600 dark:text-amber-300">

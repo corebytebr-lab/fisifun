@@ -78,6 +78,24 @@ export default function ConfiguracoesPage() {
       </Card>
 
       <Card>
+        <CardTitle>Vida infinita 💖</CardTitle>
+        <CardSubtitle>Nunca perca vidas ao errar. Ideal pra quem quer só estudar sem travar.</CardSubtitle>
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            onClick={() => state.setInfiniteHearts(!state.infiniteHearts)}
+            className={`relative h-7 w-12 rounded-full transition ${state.infiniteHearts ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-700"}`}
+          >
+            <div
+              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
+                state.infiniteHearts ? "left-5" : "left-0.5"
+              }`}
+            />
+          </button>
+          <span className="text-sm">{state.infiniteHearts ? "Ativado — ∞ vidas" : "Desativado"}</span>
+        </div>
+      </Card>
+
+      <Card>
         <CardTitle>Modo sem distração</CardTitle>
         <CardSubtitle>Esconde a barra de navegação durante o estudo.</CardSubtitle>
         <div className="mt-3 flex items-center gap-2">
