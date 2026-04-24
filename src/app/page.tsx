@@ -23,6 +23,7 @@ import {
   Notebook,
   CalendarClock,
   Calculator,
+  Gamepad2,
 } from "lucide-react";
 import { chapterCompleted, ALL_CHAPTER_IDS } from "@/lib/achievements";
 import { useHydrated } from "@/lib/useHydrated";
@@ -172,6 +173,7 @@ export default function HomePage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <QuickMode href="/jogos" icon={<Gamepad2 />} label="Minijogos" sub="11 jogos didáticos" color="bg-fuchsia-500/10 text-fuchsia-600" />
         <QuickMode href="/duvida" icon={<MessageCircleQuestion />} label="Tirar dúvida" sub="Foto ou texto · IA" color="bg-indigo-500/10 text-indigo-600" />
         <QuickMode href="/flashcards" icon={<Layers />} label="Flashcards" sub="Fórmulas (SRS)" color="bg-emerald-500/10 text-emerald-600" />
         <QuickMode href="/plano" icon={<CalendarClock />} label="Plano p/ prova" sub="Cronograma" color="bg-rose-500/10 text-rose-600" />
