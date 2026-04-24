@@ -69,6 +69,18 @@ export interface PersistedState {
   // Finale
   gameCompleted: boolean;
   gameCompletedAt: number | null;
+
+  // Novas features
+  notes: Record<string, string>; // chapterId -> markdown
+  formulaSrs: Record<string, SrsItem>; // formulaId -> SrsItem
+  studyPlan: {
+    examDate: string | null; // YYYY-MM-DD
+    chapters: string[]; // chapter ids que caem
+    dailyMinutes: number;
+    createdAt: number | null;
+  };
+  pomodoroMinutes: number; // foco (default 25)
+  pomodoroBreak: number; // pausa (default 5)
 }
 
 export interface GameState extends PersistedState {
@@ -94,6 +106,11 @@ export interface GameState extends PersistedState {
   reviewSrs: (exerciseId: string, correct: boolean) => void;
   markGameCompleted: () => void;
   resetProgress: () => void;
+
+  setNote: (chapterId: string, md: string) => void;
+  reviewFormulaSrs: (formulaId: string, quality: 0 | 1 | 2) => void; // 0=errou, 1=difícil, 2=fácil
+  setStudyPlan: (plan: PersistedState["studyPlan"]) => void;
+  setPomodoro: (minutes: number, breakMin: number) => void;
 }
 
 const todayKey = (d = new Date()) => {
@@ -161,6 +178,12 @@ const initial: PersistedState = {
   srs: {},
   gameCompleted: false,
   gameCompletedAt: null,
+
+  notes: {},
+  formulaSrs: {},
+  studyPlan: { examDate: null, chapters: [], dailyMinutes: 30, createdAt: null },
+  pomodoroMinutes: 25,
+  pomodoroBreak: 5,
 };
 
 const upsertDaily = (log: DailyLog[], patch: Partial<DailyLog>): DailyLog[] => {
@@ -346,17 +369,69 @@ export const useGame = create<GameState>()(
       markGameCompleted: () => set({ gameCompleted: true, gameCompletedAt: Date.now() }),
 
       resetProgress: () => set({ ...initial }),
+
+      setNote: (chapterId, md) => set({ notes: { ...get().notes, [chapterId]: md } }),
+
+      reviewFormulaSrs: (formulaId, quality) => {
+        const now = Date.now();
+        const cur: SrsItem = get().formulaSrs[formulaId] ?? {
+          exerciseId: formulaId,
+          chapterId: "",
+          lessonId: "",
+          ease: 2.5,
+          interval: 0,
+          correctStreak: 0,
+          lapses: 0,
+          dueDate: now,
+        };
+        let { ease, interval, correctStreak, lapses } = cur;
+        if (quality === 0) {
+          lapses += 1;
+          correctStreak = 0;
+          interval = 1;
+          ease = Math.max(1.3, ease - 0.2);
+        } else {
+          correctStreak += 1;
+          if (quality === 1) ease = Math.max(1.3, ease - 0.05);
+          else ease = ease + 0.1;
+          if (correctStreak === 1) interval = 1;
+          else if (correctStreak === 2) interval = 3;
+          else interval = Math.round(interval * ease);
+        }
+        const dueDate = now + interval * 24 * 60 * 60 * 1000;
+        const updated: SrsItem = {
+          exerciseId: formulaId,
+          chapterId: cur.chapterId,
+          lessonId: cur.lessonId,
+          ease,
+          interval,
+          correctStreak,
+          lapses,
+          dueDate,
+        };
+        set({ formulaSrs: { ...get().formulaSrs, [formulaId]: updated } });
+      },
+
+      setStudyPlan: (plan) => set({ studyPlan: { ...plan, createdAt: plan.createdAt ?? Date.now() } }),
+
+      setPomodoro: (minutes, breakMin) => set({ pomodoroMinutes: minutes, pomodoroBreak: breakMin }),
     }),
     {
       name: "fisifun-state",
-      version: 3,
+      version: 4,
       migrate: (persisted: unknown, version: number) => {
         let s = (persisted as Partial<PersistedState>) ?? {};
-        if (version < 2) {
-          s = { ...s, infiniteHearts: true };
-        }
-        if (version < 3) {
-          s = { ...s, geminiApiKey: s.geminiApiKey ?? "" };
+        if (version < 2) s = { ...s, infiniteHearts: true };
+        if (version < 3) s = { ...s, geminiApiKey: s.geminiApiKey ?? "" };
+        if (version < 4) {
+          s = {
+            ...s,
+            notes: s.notes ?? {},
+            formulaSrs: s.formulaSrs ?? {},
+            studyPlan: s.studyPlan ?? { examDate: null, chapters: [], dailyMinutes: 30, createdAt: null },
+            pomodoroMinutes: s.pomodoroMinutes ?? 25,
+            pomodoroBreak: s.pomodoroBreak ?? 5,
+          };
         }
         return s as PersistedState;
       },

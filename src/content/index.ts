@@ -58,3 +58,13 @@ export function totalExerciseCount(): number {
 export function totalFormulaCount(): number {
   return CHAPTERS.reduce((acc, c) => acc + c.formulas.length, 0);
 }
+
+export function allFormulas(): { chapter: Chapter; formula: Chapter["formulas"][number] }[] {
+  const out: { chapter: Chapter; formula: Chapter["formulas"][number] }[] = [];
+  for (const c of CHAPTERS) {
+    for (const f of c.formulas) {
+      out.push({ chapter: c, formula: f });
+    }
+  }
+  return out;
+}

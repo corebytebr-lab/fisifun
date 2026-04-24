@@ -18,6 +18,7 @@ import {
   MessageCircleQuestion,
 } from "lucide-react";
 import { useGame } from "@/lib/store";
+import { PomodoroFab } from "./Pomodoro";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -53,6 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <main className="flex-1 pb-20 md:pb-6">{children}</main>
       <BottomNav />
+      <PomodoroFab />
     </div>
   );
 }
