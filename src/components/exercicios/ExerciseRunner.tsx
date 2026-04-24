@@ -7,7 +7,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { RichText, InlineMath, normalizeText } from "@/lib/format";
 import { CheckCircle2, XCircle, Lightbulb, Sparkles, Loader2 } from "lucide-react";
-import { callGemini, TUTOR_SYSTEM } from "@/lib/gemini";
+import { callGemini, GeminiError, TUTOR_SYSTEM } from "@/lib/gemini";
 import { useGame } from "@/lib/store";
 
 export type ExerciseResult = { correct: boolean };
@@ -111,7 +111,7 @@ function Feedback({
       });
       setAiText(text);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = e instanceof GeminiError ? e.friendly : e instanceof Error ? e.message : String(e);
       setAiError(msg);
     } finally {
       setAiLoading(false);
@@ -152,7 +152,7 @@ function Feedback({
       )}
 
       {aiError && aiError !== "NO_KEY" && (
-        <div className="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-300">
+        <div className="mt-3 whitespace-pre-wrap rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-300">
           {aiError}
         </div>
       )}

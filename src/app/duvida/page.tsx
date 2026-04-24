@@ -6,7 +6,7 @@ import { Card, CardTitle, CardSubtitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ChevronLeft, Sparkles, Image as ImageIcon, Loader2, Send, Trash2 } from "lucide-react";
 import { useGame } from "@/lib/store";
-import { callGemini, fileToInlineData, TUTOR_SYSTEM, type GeminiMessage, type GeminiPart } from "@/lib/gemini";
+import { callGemini, fileToInlineData, GeminiError, TUTOR_SYSTEM, type GeminiMessage, type GeminiPart } from "@/lib/gemini";
 import { RichText } from "@/lib/format";
 import { useHydrated } from "@/lib/useHydrated";
 
@@ -59,7 +59,7 @@ export default function DuvidaPage() {
       setImagePreview(null);
       if (fileRef.current) fileRef.current.value = "";
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = e instanceof GeminiError ? e.friendly : e instanceof Error ? e.message : String(e);
       setError(msg);
       setHistory(history);
     } finally {
@@ -150,7 +150,7 @@ export default function DuvidaPage() {
       </div>
 
       {error && error !== "NO_KEY" && (
-        <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-300">{error}</div>
+        <div className="whitespace-pre-wrap rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-300">{error}</div>
       )}
 
       <Card className="sticky bottom-4 z-20 !p-3">

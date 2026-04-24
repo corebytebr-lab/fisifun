@@ -1,8 +1,15 @@
 // Minimal Gemini client that runs 100% in the browser.
 // Docs: https://ai.google.dev/api/generate-content
-// Free tier: Gemini 2.0 Flash via AI Studio, sem cartão.
+// Free tier via AI Studio, sem cartão.
 
-const MODEL = "gemini-2.0-flash";
+// Ordem de fallback: tenta os modelos nesta ordem até um funcionar.
+// Alguns projetos têm quota só num subset, então a gente testa múltiplos.
+const MODEL_FALLBACKS = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-flash-8b-latest",
+];
 
 export interface GeminiPart {
   text?: string;
@@ -21,9 +28,18 @@ export interface GeminiRequest {
   signal?: AbortSignal;
 }
 
-export async function callGemini({ apiKey, system, messages, signal }: GeminiRequest): Promise<string> {
-  if (!apiKey) throw new Error("Faltando API key do Gemini. Configure em Configurações → Tutor IA.");
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+export class GeminiError extends Error {
+  code: number;
+  friendly: string;
+  constructor(code: number, message: string, friendly: string) {
+    super(message);
+    this.code = code;
+    this.friendly = friendly;
+  }
+}
+
+async function callOne(model: string, { apiKey, system, messages, signal }: GeminiRequest): Promise<string> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const body = {
     contents: messages.map((m) => ({ role: m.role, parts: m.parts })),
     systemInstruction: system ? { parts: [{ text: system }] } : undefined,
@@ -40,12 +56,53 @@ export async function callGemini({ apiKey, system, messages, signal }: GeminiReq
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Gemini API erro ${res.status}: ${txt.slice(0, 300)}`);
+    let friendly = `Erro ${res.status} da API do Gemini.`;
+    if (res.status === 429) {
+      friendly =
+        "A chave bateu no limite de cota do Google (429). Provavelmente a chave foi criada num projeto do Cloud com quota 0, ou você passou de 15 req/min.\n\n" +
+        "Soluções:\n" +
+        "• Espere 1 minuto e tente de novo.\n" +
+        "• Ou crie uma chave nova em https://aistudio.google.com/apikey (precisa ser direto no AI Studio, NÃO no Google Cloud Console).\n" +
+        "• Cole a chave nova em Configurações → Tutor IA.";
+    } else if (res.status === 400 && txt.includes("API_KEY")) {
+      friendly = "Chave inválida. Gera uma nova em https://aistudio.google.com/apikey.";
+    } else if (res.status === 403) {
+      friendly = "Acesso negado (403). A chave pode ter restrição de API/HTTP-referrer. Crie uma sem restrições em https://aistudio.google.com/apikey.";
+    } else if (res.status === 404) {
+      friendly = `Modelo ${model} não encontrado nessa chave.`;
+    }
+    throw new GeminiError(res.status, txt.slice(0, 400), friendly);
   }
   const json = await res.json();
   const text = json?.candidates?.[0]?.content?.parts?.map((p: GeminiPart) => p.text).filter(Boolean).join("\n");
-  if (!text) throw new Error("Gemini não retornou texto.");
+  if (!text) throw new GeminiError(500, "Resposta vazia", "O Gemini não retornou texto. Tenta de novo.");
   return text as string;
+}
+
+export async function callGemini(req: GeminiRequest): Promise<string> {
+  if (!req.apiKey) {
+    throw new GeminiError(
+      401,
+      "Sem chave",
+      "Faltando API key do Gemini. Configure em Configurações → Tutor IA."
+    );
+  }
+  let lastErr: GeminiError | null = null;
+  for (const model of MODEL_FALLBACKS) {
+    try {
+      return await callOne(model, req);
+    } catch (e) {
+      if (e instanceof GeminiError) {
+        lastErr = e;
+        // 429 (quota) e 404 (modelo indisponível) → tenta próximo modelo
+        if (e.code === 429 || e.code === 404) continue;
+        // Outros erros (auth, rede): não adianta tentar outro modelo
+        throw e;
+      }
+      throw e;
+    }
+  }
+  throw lastErr ?? new GeminiError(500, "falha", "Não conseguiu chamar nenhum modelo do Gemini.");
 }
 
 export async function fileToInlineData(file: File): Promise<GeminiPart> {
