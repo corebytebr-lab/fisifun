@@ -2,16 +2,18 @@
 
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { findChapter, findLesson, CHAPTERS } from "@/content/index";
+import { useEffect, useMemo, useState } from "react";
+import { findChapter, findLesson, CHAPTERS, hallidayProblemsForChapter, HALLIDAY_LESSON_MIN_ANSWERED } from "@/content/index";
 import { useGame } from "@/lib/store";
 import { Card, CardTitle, CardSubtitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/Progress";
 import { ExerciseRunner } from "@/components/exercicios/ExerciseRunner";
+import { HallidayProblemCard, DIFFICULTY_XP } from "@/components/HallidayProblemCard";
 import { RichText } from "@/lib/format";
 import { ChevronLeft, Heart, Sparkles, BookOpen } from "lucide-react";
 import { achievements } from "@/lib/achievements";
+import type { HallidayProblem } from "@/content/halliday-problems";
 
 export default function LessonClient() {
   const params = useParams<{ chapterId: string; lessonId: string }>();
@@ -23,7 +25,7 @@ export default function LessonClient() {
   const lesson = findLesson(chapterId, lessonId);
 
   const state = useGame();
-  const [phase, setPhase] = useState<"intro" | "concept" | "exercise" | "done">("intro");
+  const [phase, setPhase] = useState<"intro" | "concept" | "exercise" | "halliday" | "done">("intro");
   const [conceptIdx, setConceptIdx] = useState(0);
   const [exerciseIdx, setExerciseIdx] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -31,7 +33,8 @@ export default function LessonClient() {
   const [startedAt] = useState(Date.now());
 
   useEffect(() => {
-    if (lesson?.concepts && lesson.concepts.length > 0) setPhase("concept");
+    if (lesson?.kind === "halliday") setPhase("halliday");
+    else if (lesson?.concepts && lesson.concepts.length > 0) setPhase("concept");
     else if (lesson?.exercises && lesson.exercises.length > 0) setPhase("exercise");
     else setPhase("done");
   }, [lesson]);
@@ -159,6 +162,17 @@ export default function LessonClient() {
         </Card>
       )}
 
+      {phase === "halliday" && (
+        <HallidayLessonView
+          chapterId={chapter.id}
+          onComplete={(corrects, totals) => {
+            setCorrectCount(corrects);
+            setTotalAnswered(totals);
+            finish();
+          }}
+        />
+      )}
+
       {phase === "done" && <DoneScreen chapter={chapter} lesson={lesson} correctCount={correctCount} total={totalAnswered} onBack={() => router.push(`/capitulo/${chapter.id}`)} />}
     </div>
   );
@@ -254,3 +268,89 @@ function DoneScreen({
     </Card>
   );
 }
+
+function HallidayLessonView({
+  chapterId,
+  onComplete,
+}: {
+  chapterId: string;
+  onComplete: (correct: number, total: number) => void;
+}) {
+  const state = useGame();
+  // 5 problemas determinísticos por capítulo (primeiros 5, ordenados por dificuldade)
+  const problems = useMemo(() => {
+    const all = hallidayProblemsForChapter(chapterId);
+    const sorted = [...all].sort((a, b) => a.difficulty - b.difficulty || a.number - b.number);
+    return sorted.slice(0, 5);
+  }, [chapterId]);
+
+  function handleAnswer(p: HallidayProblem, result: "correct" | "wrong") {
+    const prev = state.hallidayProgress[p.id];
+    state.markHalliday(p.id, result);
+    if (result === "correct" && prev !== "correct") {
+      state.awardXp(DIFFICULTY_XP[p.difficulty as 1 | 2 | 3]);
+    } else if (result === "wrong") {
+      if (!state.infiniteHearts) state.loseHeart();
+    }
+  }
+
+  const answered = problems.filter((p) => !!state.hallidayProgress[p.id]);
+  const correct = problems.filter((p) => state.hallidayProgress[p.id] === "correct");
+  const min = Math.min(HALLIDAY_LESSON_MIN_ANSWERED, problems.length);
+  const canFinish = answered.length >= min;
+
+  if (problems.length === 0) {
+    return (
+      <Card>
+        <CardTitle>Sem problemas disponíveis</CardTitle>
+        <CardSubtitle>Este capítulo ainda não tem problemas do Halliday cadastrados.</CardSubtitle>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card>
+        <div className="flex items-center gap-2 text-xs font-semibold text-indigo-500">
+          <BookOpen size={14} /> Problemas do livro (Halliday)
+        </div>
+        <CardSubtitle>
+          Resolva ao menos <strong>{min}</strong> destes <strong>{problems.length}</strong>{" "}
+          problemas para concluir a lição. Você pode clicar em <strong>Ver solução (IA)</strong>{" "}
+          ou abrir no Tutor IA quando travar. Erros consomem vida (se vida infinita estiver off).
+        </CardSubtitle>
+        <div className="mt-3 flex items-center gap-2 text-xs">
+          <ProgressBar value={answered.length} max={min} color="indigo" />
+          <span className="whitespace-nowrap font-semibold">
+            {answered.length}/{min} respondidos · {correct.length} corretos
+          </span>
+        </div>
+      </Card>
+
+      <div className="flex flex-col gap-3">
+        {problems.map((p) => (
+          <HallidayProblemCard
+            key={p.id}
+            problem={p}
+            status={state.hallidayProgress[p.id]}
+            onAnswer={(r) => handleAnswer(p, r)}
+            geminiKey={state.geminiApiKey}
+          />
+        ))}
+      </div>
+
+      <div className="sticky bottom-2 z-10 flex justify-end">
+        <Button
+          disabled={!canFinish}
+          onClick={() => onComplete(correct.length, answered.length)}
+          size="lg"
+        >
+          {canFinish
+            ? "Concluir lição"
+            : `Faltam ${min - answered.length} para concluir`}
+        </Button>
+      </div>
+    </>
+  );
+}
+
