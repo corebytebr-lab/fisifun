@@ -16,6 +16,7 @@ import {
   Sun,
   Monitor,
   MessageCircleQuestion,
+  ClipboardList,
   LogIn,
   LogOut,
 } from "lucide-react";
@@ -66,6 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 const NAV = [
   { href: "/", label: "Início", icon: Home },
   { href: "/trilha", label: "Trilha", icon: MapIcon },
+  { href: "/problemas", label: "Problemas", icon: ClipboardList },
   { href: "/duvida", label: "Dúvida", icon: MessageCircleQuestion },
   { href: "/treino", label: "Treino", icon: Dumbbell },
   { href: "/revisao", label: "Revisão", icon: Sparkles },

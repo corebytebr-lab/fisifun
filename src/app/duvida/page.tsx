@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Card, CardTitle, CardSubtitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -20,6 +20,12 @@ export default function DuvidaPage() {
   const mounted = useHydrated();
   const apiKey = useGame((s) => s.geminiApiKey);
   const [input, setInput] = useState("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q) setInput(q);
+  }, []);
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [history, setHistory] = useState<ChatMsg[]>([]);

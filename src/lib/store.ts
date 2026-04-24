@@ -81,6 +81,9 @@ export interface PersistedState {
   };
   pomodoroMinutes: number; // foco (default 25)
   pomodoroBreak: number; // pausa (default 5)
+
+  // Problemas do Halliday: 'correct' | 'wrong' | ausente (nunca tentou)
+  hallidayProgress: Record<string, "correct" | "wrong">;
 }
 
 export interface GameState extends PersistedState {
@@ -111,6 +114,7 @@ export interface GameState extends PersistedState {
   reviewFormulaSrs: (formulaId: string, quality: 0 | 1 | 2) => void; // 0=errou, 1=difícil, 2=fácil
   setStudyPlan: (plan: PersistedState["studyPlan"]) => void;
   setPomodoro: (minutes: number, breakMin: number) => void;
+  markHalliday: (problemId: string, result: "correct" | "wrong") => void;
 }
 
 const todayKey = (d = new Date()) => {
@@ -184,6 +188,7 @@ const initial: PersistedState = {
   studyPlan: { examDate: null, chapters: [], dailyMinutes: 30, createdAt: null },
   pomodoroMinutes: 25,
   pomodoroBreak: 5,
+  hallidayProgress: {},
 };
 
 const upsertDaily = (log: DailyLog[], patch: Partial<DailyLog>): DailyLog[] => {
@@ -415,10 +420,20 @@ export const useGame = create<GameState>()(
       setStudyPlan: (plan) => set({ studyPlan: { ...plan, createdAt: plan.createdAt ?? Date.now() } }),
 
       setPomodoro: (minutes, breakMin) => set({ pomodoroMinutes: minutes, pomodoroBreak: breakMin }),
+
+      markHalliday: (problemId, result) => {
+        const prev = get().hallidayProgress[problemId];
+        set((s) => ({ hallidayProgress: { ...s.hallidayProgress, [problemId]: result } }));
+        // First-time correct = XP reward (prevents farming)
+        if (result === "correct" && prev !== "correct") {
+          // XP depends on difficulty embedded in id (cap{ch}-p{num}); caller pass XP via separate awardXp.
+          // We just flag the progress; awardXp handled by caller.
+        }
+      },
     }),
     {
       name: "fisifun-state",
-      version: 4,
+      version: 5,
       migrate: (persisted: unknown, version: number) => {
         let s = (persisted as Partial<PersistedState>) ?? {};
         if (version < 2) s = { ...s, infiniteHearts: true };
@@ -432,6 +447,9 @@ export const useGame = create<GameState>()(
             pomodoroMinutes: s.pomodoroMinutes ?? 25,
             pomodoroBreak: s.pomodoroBreak ?? 5,
           };
+        }
+        if (version < 5) {
+          s = { ...s, hallidayProgress: s.hallidayProgress ?? {} };
         }
         return s as PersistedState;
       },
