@@ -18,6 +18,7 @@ import {
   RefreshCw,
   BookOpen,
   Clock3,
+  MessageCircleQuestion,
 } from "lucide-react";
 import { chapterCompleted, ALL_CHAPTER_IDS } from "@/lib/achievements";
 import { useHydrated } from "@/lib/useHydrated";
@@ -166,7 +167,8 @@ export default function HomePage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <QuickMode href="/duvida" icon={<MessageCircleQuestion />} label="Tirar dúvida" sub="Foto ou texto · IA" color="bg-indigo-500/10 text-indigo-600" />
         <QuickMode href="/treino" icon={<Dumbbell />} label="Treino" sub="5 min de exercícios" color="bg-sky-500/10 text-sky-600" />
         <QuickMode href="/revisao" icon={<RefreshCw />} label="Revisar erros" sub="Só onde errei" color="bg-amber-500/10 text-amber-600" />
         <QuickMode href="/prova" icon={<GraduationCap />} label="Modo prova" sub="Simulado" color="bg-rose-500/10 text-rose-600" />

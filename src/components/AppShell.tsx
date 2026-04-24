@@ -15,6 +15,7 @@ import {
   Moon,
   Sun,
   Monitor,
+  MessageCircleQuestion,
 } from "lucide-react";
 import { useGame } from "@/lib/store";
 
@@ -59,9 +60,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 const NAV = [
   { href: "/", label: "Início", icon: Home },
   { href: "/trilha", label: "Trilha", icon: MapIcon },
-  { href: "/formulas", label: "Fórmulas", icon: BookOpen },
+  { href: "/duvida", label: "Dúvida", icon: MessageCircleQuestion },
   { href: "/treino", label: "Treino", icon: Dumbbell },
   { href: "/revisao", label: "Revisão", icon: Sparkles },
+  { href: "/formulas", label: "Fórmulas", icon: BookOpen },
   { href: "/prova", label: "Prova", icon: GraduationCap },
   { href: "/conquistas", label: "Conquistas", icon: Trophy },
   { href: "/perfil", label: "Perfil", icon: User },

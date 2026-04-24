@@ -52,6 +52,7 @@ export interface PersistedState {
   reminderTime: string | null; // HH:MM, local
   focusMode: boolean; // sem distração
   infiniteHearts: boolean; // vida infinita
+  geminiApiKey: string; // chave do Google Gemini (fica só no navegador)
 
   // Progress
   lessonProgress: Record<string, LessonProgress>; // key = `${chapterId}/${lessonId}`
@@ -83,6 +84,7 @@ export interface GameState extends PersistedState {
   setTheme: (t: "light" | "dark" | "system") => void;
   setFocusMode: (v: boolean) => void;
   setInfiniteHearts: (v: boolean) => void;
+  setGeminiApiKey: (k: string) => void;
   setDailyGoal: (xp: number) => void;
   setReminderTime: (t: string | null) => void;
   setUsername: (n: string) => void;
@@ -146,6 +148,7 @@ const initial: PersistedState = {
   reminderTime: null,
   focusMode: false,
   infiniteHearts: true,
+  geminiApiKey: "",
 
   lessonProgress: {},
   chapterUnlocked: { "01-medicao": true },
@@ -298,6 +301,7 @@ export const useGame = create<GameState>()(
       setTheme: (t) => set({ theme: t }),
       setFocusMode: (v) => set({ focusMode: v }),
       setInfiniteHearts: (v) => set({ infiniteHearts: v, hearts: v ? get().maxHearts : get().hearts }),
+      setGeminiApiKey: (k) => set({ geminiApiKey: k }),
       setDailyGoal: (n) => set({ dailyGoalXp: n }),
       setReminderTime: (t) => set({ reminderTime: t }),
       setUsername: (n) => set({ username: n }),
@@ -345,11 +349,14 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "fisifun-state",
-      version: 2,
+      version: 3,
       migrate: (persisted: unknown, version: number) => {
-        const s = (persisted as Partial<PersistedState>) ?? {};
+        let s = (persisted as Partial<PersistedState>) ?? {};
         if (version < 2) {
-          return { ...s, infiniteHearts: true } as PersistedState;
+          s = { ...s, infiniteHearts: true };
+        }
+        if (version < 3) {
+          s = { ...s, geminiApiKey: s.geminiApiKey ?? "" };
         }
         return s as PersistedState;
       },
