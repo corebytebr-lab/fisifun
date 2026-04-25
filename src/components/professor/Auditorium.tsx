@@ -66,9 +66,10 @@ function createAuditorium(container: HTMLDivElement, lumerCount: number): Audito
   scene.background = new THREE.Color("#0b1028");
   scene.fog = new THREE.Fog("#0b1028", 12, 30);
 
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-  camera.position.set(0, 4.2, 9);
-  camera.lookAt(0, 1.8, -2);
+  // Professor's POV: camera on the stage looking AT the audience.
+  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
+  camera.position.set(0, 2.6, -1.6);
+  camera.lookAt(0, 1.1, 5);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -94,16 +95,20 @@ function createAuditorium(container: HTMLDivElement, lumerCount: number): Audito
   scene.add(ambient);
   const hemi = new THREE.HemisphereLight(0xfff1c0, 0x302060, 0.45);
   scene.add(hemi);
-  const spot = new THREE.SpotLight(0xfff5d6, 1.4, 30, Math.PI / 6, 0.4, 1.2);
-  spot.position.set(0, 8, 4);
-  spot.target.position.set(0, 1, -2);
+  // Spotlights the audience (not the board) — so the plateia is lit up.
+  const spot = new THREE.SpotLight(0xfff5d6, 1.6, 40, Math.PI / 4.2, 0.45, 1.1);
+  spot.position.set(0, 9, -1);
+  spot.target.position.set(0, 0.8, 5);
   spot.castShadow = true;
   spot.shadow.mapSize.set(1024, 1024);
   scene.add(spot);
   scene.add(spot.target);
-  const fill = new THREE.PointLight(0x4f6df5, 0.7, 20);
-  fill.position.set(-3, 3, 4);
+  const fill = new THREE.PointLight(0x6f8dff, 0.9, 22);
+  fill.position.set(-4, 3.2, 4);
   scene.add(fill);
+  const fill2 = new THREE.PointLight(0xff9ab0, 0.55, 22);
+  fill2.position.set(4, 3.2, 4);
+  scene.add(fill2);
 
   // Floor
   const floorGeom = new THREE.CircleGeometry(14, 48);
@@ -154,7 +159,8 @@ function createAuditorium(container: HTMLDivElement, lumerCount: number): Audito
   boardGroup.position.set(0, 2.7, -5.4);
   scene.add(boardGroup);
 
-  // Curtain (two red panels that slide to center)
+  // Curtain (two red panels that slide to center). Positioned between camera and audience
+  // so that when they close, they fully cover the plateia from the professor POV.
   const curtainMat = new THREE.MeshStandardMaterial({
     color: 0xa31a2e,
     roughness: 0.7,
@@ -162,28 +168,30 @@ function createAuditorium(container: HTMLDivElement, lumerCount: number): Audito
     emissive: 0x3a0a14,
     emissiveIntensity: 0.2,
   });
-  const curtainLeft = new THREE.Mesh(new THREE.BoxGeometry(6.5, 7, 0.15), curtainMat);
-  curtainLeft.position.set(-9, 3.5, 0.5);
+  const curtainLeft = new THREE.Mesh(new THREE.BoxGeometry(7, 7, 0.15), curtainMat);
+  curtainLeft.position.set(-9, 3.5, 0.6);
   scene.add(curtainLeft);
-  const curtainRight = new THREE.Mesh(new THREE.BoxGeometry(6.5, 7, 0.15), curtainMat);
-  curtainRight.position.set(9, 3.5, 0.5);
+  const curtainRight = new THREE.Mesh(new THREE.BoxGeometry(7, 7, 0.15), curtainMat);
+  curtainRight.position.set(9, 3.5, 0.6);
   scene.add(curtainRight);
 
-  // Generate lumer characters arranged in 2 tiered arcs
+  // Generate lumer characters arranged in 2 tiered arcs facing the professor (camera).
+  // Front row sits closer and lower; back row sits further and elevated so their heads clear.
   const lumerObjs: LumerObj[] = [];
   const perRow = Math.ceil(lumerCount / 2);
   for (let i = 0; i < lumerCount; i++) {
     const row = Math.floor(i / perRow); // 0 front, 1 back
     const col = i % perRow;
     const frac = (col + 0.5) / perRow;
-    const angle = (frac - 0.5) * 1.4; // arc spread
-    const radius = 5 + row * 1.4;
-    const x = Math.sin(angle) * radius;
-    const z = 2 + Math.cos(angle) * 2.5 + row * 1.3;
-    const y = row === 1 ? 0.45 : 0;
+    const angle = (frac - 0.5) * 1.6; // arc spread
+    const radius = row === 0 ? 4.2 : 6.2;
+    const x = Math.sin(angle) * radius * 0.95;
+    const z = 2.2 + Math.cos(angle) * (row === 0 ? 1.2 : 1.6) + row * 1.9;
+    const y = row === 1 ? 0.85 : 0;
     const l = buildLumer();
     l.root.position.set(x, y, z);
-    l.root.lookAt(0, 1, -2);
+    // Face the stage/camera (which is at negative z).
+    l.root.lookAt(0, 1.3, -1.6);
     scene.add(l.root);
     lumerObjs.push(l);
   }
@@ -218,8 +226,8 @@ function createAuditorium(container: HTMLDivElement, lumerCount: number): Audito
 
     // Smooth curtain
     currentCurtain += (targetCurtain - currentCurtain) * 0.06;
-    const offsetL = -9 + 7 * currentCurtain;
-    const offsetR = 9 - 7 * currentCurtain;
+    const offsetL = -9 + 9.2 * currentCurtain;
+    const offsetR = 9 - 9.2 * currentCurtain;
     curtainLeft.position.x = offsetL;
     curtainRight.position.x = offsetR;
 
