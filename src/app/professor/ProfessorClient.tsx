@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Send, Sparkles, Play, Loader2, Hand, Trophy } from "lucide-react";
 import { Auditorium, type LumerState, type LumerMood } from "@/components/professor/Auditorium";
+import { MicButton } from "@/components/professor/MicButton";
+import { Whiteboard } from "@/components/professor/Whiteboard";
 import { CHAPTERS } from "@/content/index";
 import { useGame } from "@/lib/store";
 import { useHydrated } from "@/lib/useHydrated";
@@ -70,6 +72,9 @@ export function ProfessorClient() {
   const [phase, setPhase] = useState<Phase>("select");
   const [topic, setTopic] = useState<Topic | null>(null);
   const [explanation, setExplanation] = useState("");
+  const [boardText, setBoardText] = useState("");
+  const [boardHasDrawing, setBoardHasDrawing] = useState(false);
+  const [interimSpeech, setInterimSpeech] = useState("");
   const [evaluation, setEvaluation] = useState<ProfessorEvaluation | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<ProfessorQuestion | null>(null);
   const [questionsAsked, setQuestionsAsked] = useState<string[]>([]);
@@ -137,6 +142,9 @@ export function ProfessorClient() {
 
   function resetLesson() {
     setExplanation("");
+    setBoardText("");
+    setBoardHasDrawing(false);
+    setInterimSpeech("");
     setEvaluation(null);
     setCurrentQuestion(null);
     setQuestionsAsked([]);
@@ -167,17 +175,18 @@ export function ProfessorClient() {
     }
     const text = explanation.trim();
     if (text.length < 20) {
-      setErrorMsg("Escreva uma explicação com pelo menos 20 caracteres.");
+      setErrorMsg("Fale ou escreva uma explicação com pelo menos 20 caracteres.");
       return;
     }
     setErrorMsg(null);
     setPhase("evaluating");
     try {
+      const fullExplanation = composeExplanation(text, boardText, boardHasDrawing);
       const ev = await evaluateExplanation({
         apiKey,
         topic: topic.title,
         chapterTitle: topic.chapterTitle,
-        explanation: text,
+        explanation: fullExplanation,
       });
       setEvaluation(ev);
       if (ev.verdict === "ok") {
@@ -215,7 +224,7 @@ export function ProfessorClient() {
         apiKey,
         topic: topic.title,
         chapterTitle: topic.chapterTitle,
-        explanation,
+        explanation: composeExplanation(explanation, boardText, boardHasDrawing),
         lumerName,
         previousQuestions: questionsAsked,
       });
@@ -388,19 +397,45 @@ export function ProfessorClient() {
 
         {phase === "explain" && (
           <BottomPanel title="👨‍🏫 Explique sobre esse assunto para os Lumers">
-            <textarea
-              autoFocus
-              rows={5}
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              placeholder={`Explique com suas palavras o conceito de "${topic?.title}". Use fórmulas, dê exemplos, cite unidades.`}
-              className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none"
-            />
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-white/50">
+                    🗣️ Fala / escrita
+                  </span>
+                  <MicButton
+                    onTranscript={(t) =>
+                      setExplanation((prev) => (prev ? `${prev} ${t}`.trim() : t.trim()))
+                    }
+                    onInterim={setInterimSpeech}
+                  />
+                </div>
+                <textarea
+                  rows={6}
+                  value={explanation}
+                  onChange={(e) => setExplanation(e.target.value)}
+                  placeholder={`Explique "${topic?.title}". Pode falar no microfone ou digitar. Use fórmulas, dê exemplos, cite unidades.`}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none"
+                />
+                {interimSpeech ? (
+                  <div className="rounded-md bg-indigo-500/10 p-2 text-xs italic text-indigo-200">
+                    🎙️ {interimSpeech}
+                  </div>
+                ) : null}
+              </div>
+              <Whiteboard
+                text={boardText}
+                onTextChange={setBoardText}
+                onDrawingChange={setBoardHasDrawing}
+              />
+            </div>
             {errorMsg ? (
-              <div className="mt-2 rounded-lg bg-rose-500/10 p-2 text-sm text-rose-300">{errorMsg}</div>
+              <div className="mt-3 rounded-lg bg-rose-500/10 p-2 text-sm text-rose-300">{errorMsg}</div>
             ) : null}
             <div className="mt-3 flex items-center justify-between gap-3">
-              <div className="text-xs text-white/50">{explanation.length} caracteres</div>
+              <div className="text-xs text-white/50">
+                {explanation.length} caracteres · {boardText.length} no quadro
+              </div>
               <button
                 onClick={submitExplanation}
                 disabled={explanation.trim().length < 20}
@@ -466,13 +501,20 @@ export function ProfessorClient() {
         {phase === "question-ask" && currentQuestion && askingLumerIdx !== null ? (
           <BottomPanel title={`🙋 ${LUMER_NAMES[askingLumerIdx]} pergunta:`}>
             <SpeechBubble speaker={LUMER_NAMES[askingLumerIdx]}>{currentQuestion.question}</SpeechBubble>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/50">
+                🗣️ Resposta do Professor
+              </span>
+              <MicButton
+                onTranscript={(t) => setAnswer((prev) => (prev ? `${prev} ${t}`.trim() : t.trim()))}
+              />
+            </div>
             <textarea
-              autoFocus
               rows={3}
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              placeholder="Resposta do Professor…"
-              className="mt-3 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none"
+              placeholder="Pode falar no microfone ou digitar a resposta…"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none"
             />
             {errorMsg ? (
               <div className="mt-2 rounded-lg bg-rose-500/10 p-2 text-sm text-rose-300">{errorMsg}</div>
@@ -583,6 +625,18 @@ export function ProfessorClient() {
       </div>
     </div>
   );
+}
+
+/**
+ * Combine spoken/typed explanation with the contents of the optional whiteboard
+ * into a single string that's sent to Gemini.
+ */
+function composeExplanation(spoken: string, board: string, hasDrawing: boolean): string {
+  const parts: string[] = [];
+  if (spoken.trim()) parts.push(`FALA/ESCRITA DO PROFESSOR:\n${spoken.trim()}`);
+  if (board.trim()) parts.push(`QUADRO (anotações do professor):\n${board.trim()}`);
+  if (hasDrawing) parts.push(`(O professor também desenhou um esquema/diagrama no quadro.)`);
+  return parts.join("\n\n");
 }
 
 function BottomPanel({ title, children }: { title: string; children: React.ReactNode }) {
