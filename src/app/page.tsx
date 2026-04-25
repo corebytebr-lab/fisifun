@@ -25,6 +25,7 @@ import {
   Calculator,
   Gamepad2,
   ClipboardList,
+  Presentation,
 } from "lucide-react";
 import { chapterCompleted, ALL_CHAPTER_IDS } from "@/lib/achievements";
 import { useHydrated } from "@/lib/useHydrated";
@@ -175,6 +176,7 @@ export default function HomePage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <QuickMode href="/problemas" icon={<ClipboardList />} label="Problemas Halliday" sub="248 Q · • •• •••" color="bg-violet-500/10 text-violet-600" />
+        <QuickMode href="/professor" icon={<Presentation />} label="Modo Professor" sub="Ensine os Lumers em 3D" color="bg-pink-500/10 text-pink-600" />
         <QuickMode href="/jogos" icon={<Gamepad2 />} label="Minijogos" sub="15 jogos didáticos" color="bg-fuchsia-500/10 text-fuchsia-600" />
         <QuickMode href="/duvida" icon={<MessageCircleQuestion />} label="Tirar dúvida" sub="Foto ou texto · IA" color="bg-indigo-500/10 text-indigo-600" />
         <QuickMode href="/flashcards" icon={<Layers />} label="Flashcards" sub="Fórmulas (SRS)" color="bg-emerald-500/10 text-emerald-600" />

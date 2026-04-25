@@ -17,6 +17,7 @@ import {
   Monitor,
   MessageCircleQuestion,
   ClipboardList,
+  Presentation,
   LogIn,
   LogOut,
 } from "lucide-react";
@@ -68,6 +69,7 @@ const NAV = [
   { href: "/", label: "Início", icon: Home },
   { href: "/trilha", label: "Trilha", icon: MapIcon },
   { href: "/problemas", label: "Problemas", icon: ClipboardList },
+  { href: "/professor", label: "Professor", icon: Presentation },
   { href: "/duvida", label: "Dúvida", icon: MessageCircleQuestion },
   { href: "/treino", label: "Treino", icon: Dumbbell },
   { href: "/revisao", label: "Revisão", icon: Sparkles },

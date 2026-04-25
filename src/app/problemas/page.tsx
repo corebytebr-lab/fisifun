@@ -131,7 +131,7 @@ export default function ProblemasPage() {
             </span>
           )}
           <div className="ml-auto text-xs text-[var(--muted)]">
-            Dica: sem chave Gemini, o botão "Ver solução" não funciona. Configure em{" "}
+            Dica: sem chave Gemini, o botão &quot;Ver solução&quot; não funciona. Configure em{" "}
             <Link href="/configuracoes" className="text-indigo-500 underline">
               Configurações → Tutor IA
             </Link>
