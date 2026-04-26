@@ -143,5 +143,7 @@ function kindIcon(k: string) {
   if (k === "example") return "🧠";
   if (k === "practice") return "✏️";
   if (k === "quiz") return "🏆";
+  if (k === "halliday") return "📗";
+  if (k === "challenge") return "⚡";
   return "▶";
 }

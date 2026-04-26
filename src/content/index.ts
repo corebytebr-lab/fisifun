@@ -11,6 +11,34 @@ import { cap10 } from "./chapters/10-rotacao";
 import { cap11 } from "./chapters/11-rolamento-torque";
 
 import type { Chapter, Exercise, Lesson } from "@/lib/types";
+import { HALLIDAY_PROBLEMS } from "./halliday-problems";
+
+// Minimum number of Halliday problems a user must answer (Acertei or Errei)
+// in order to complete the chapter's "Problemas do livro" lesson.
+export const HALLIDAY_LESSON_MIN_ANSWERED = 3;
+
+/** Quantidade total de problemas do livro disponíveis no capítulo. */
+export function hallidayProblemsForChapter(chapterId: string) {
+  return HALLIDAY_PROBLEMS.filter((p) => p.chapterId === chapterId);
+}
+
+/**
+ * Injeta uma lição "Problemas do livro (Halliday)" ao final de cada capítulo
+ * que tenha problemas disponíveis. Ela só completa quando o usuário responde
+ * pelo menos HALLIDAY_LESSON_MIN_ANSWERED problemas do capítulo.
+ */
+function withHallidayLesson(c: Chapter): Chapter {
+  const count = hallidayProblemsForChapter(c.id).length;
+  if (count === 0) return c;
+  const hallidayLesson: Lesson = {
+    id: "halliday-livro",
+    title: "Problemas do livro (Halliday)",
+    kind: "halliday",
+    estMinutes: 15,
+    xpReward: 60,
+  };
+  return { ...c, lessons: [...c.lessons, hallidayLesson] };
+}
 
 export const CHAPTERS: Chapter[] = [
   cap01,
@@ -24,7 +52,7 @@ export const CHAPTERS: Chapter[] = [
   cap09,
   cap10,
   cap11,
-];
+].map(withHallidayLesson);
 
 export function findChapter(id: string): Chapter | undefined {
   return CHAPTERS.find((c) => c.id === id);
@@ -57,4 +85,14 @@ export function totalExerciseCount(): number {
 
 export function totalFormulaCount(): number {
   return CHAPTERS.reduce((acc, c) => acc + c.formulas.length, 0);
+}
+
+export function allFormulas(): { chapter: Chapter; formula: Chapter["formulas"][number] }[] {
+  const out: { chapter: Chapter; formula: Chapter["formulas"][number] }[] = [];
+  for (const c of CHAPTERS) {
+    for (const f of c.formulas) {
+      out.push({ chapter: c, formula: f });
+    }
+  }
+  return out;
 }

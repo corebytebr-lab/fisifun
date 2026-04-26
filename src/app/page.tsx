@@ -18,6 +18,14 @@ import {
   RefreshCw,
   BookOpen,
   Clock3,
+  MessageCircleQuestion,
+  Layers,
+  Notebook,
+  CalendarClock,
+  Calculator,
+  Gamepad2,
+  ClipboardList,
+  Presentation,
 } from "lucide-react";
 import { chapterCompleted, ALL_CHAPTER_IDS } from "@/lib/achievements";
 import { useHydrated } from "@/lib/useHydrated";
@@ -166,8 +174,16 @@ export default function HomePage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <QuickMode href="/treino" icon={<Dumbbell />} label="Treino" sub="5 min de exercícios" color="bg-sky-500/10 text-sky-600" />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <QuickMode href="/problemas" icon={<ClipboardList />} label="Problemas Halliday" sub="248 Q · • •• •••" color="bg-violet-500/10 text-violet-600" />
+        <QuickMode href="/professor" icon={<Presentation />} label="Modo Professor" sub="Ensine os Lumers em 3D" color="bg-pink-500/10 text-pink-600" />
+        <QuickMode href="/jogos" icon={<Gamepad2 />} label="Minijogos" sub="15 jogos didáticos" color="bg-fuchsia-500/10 text-fuchsia-600" />
+        <QuickMode href="/duvida" icon={<MessageCircleQuestion />} label="Tirar dúvida" sub="Foto ou texto · IA" color="bg-indigo-500/10 text-indigo-600" />
+        <QuickMode href="/flashcards" icon={<Layers />} label="Flashcards" sub="Fórmulas (SRS)" color="bg-emerald-500/10 text-emerald-600" />
+        <QuickMode href="/plano" icon={<CalendarClock />} label="Plano p/ prova" sub="Cronograma" color="bg-rose-500/10 text-rose-600" />
+        <QuickMode href="/notas" icon={<Notebook />} label="Caderno" sub="Anotações" color="bg-amber-500/10 text-amber-600" />
+        <QuickMode href="/calc" icon={<Calculator />} label="Calculadora" sub="Com unidades" color="bg-sky-500/10 text-sky-600" />
+        <QuickMode href="/treino" icon={<Dumbbell />} label="Treino" sub="5 min" color="bg-sky-500/10 text-sky-600" />
         <QuickMode href="/revisao" icon={<RefreshCw />} label="Revisar erros" sub="Só onde errei" color="bg-amber-500/10 text-amber-600" />
         <QuickMode href="/prova" icon={<GraduationCap />} label="Modo prova" sub="Simulado" color="bg-rose-500/10 text-rose-600" />
         <QuickMode href="/formulas" icon={<BookOpen />} label="Fórmulas" sub="Biblioteca" color="bg-emerald-500/10 text-emerald-600" />

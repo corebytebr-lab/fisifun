@@ -134,7 +134,8 @@ export type LessonKind =
   | "example" // guided example
   | "practice" // interactive exercises
   | "quiz" // final quiz with lives
-  | "challenge"; // mixed/timed challenge
+  | "challenge" // mixed/timed challenge
+  | "halliday"; // problemas do livro Halliday
 
 export interface Lesson {
   id: string;

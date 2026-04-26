@@ -15,8 +15,16 @@ import {
   Moon,
   Sun,
   Monitor,
+  MessageCircleQuestion,
+  ClipboardList,
+  Presentation,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { useGame } from "@/lib/store";
+import { PomodoroFab } from "./Pomodoro";
+import { useAuth } from "@/lib/useAuth";
+import { isFirebaseConfigured, signOut as fbSignOut } from "@/lib/firebase";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -52,6 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <main className="flex-1 pb-20 md:pb-6">{children}</main>
       <BottomNav />
+      <PomodoroFab />
     </div>
   );
 }
@@ -59,9 +68,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 const NAV = [
   { href: "/", label: "Início", icon: Home },
   { href: "/trilha", label: "Trilha", icon: MapIcon },
-  { href: "/formulas", label: "Fórmulas", icon: BookOpen },
+  { href: "/problemas", label: "Problemas", icon: ClipboardList },
+  { href: "/professor", label: "Professor", icon: Presentation },
+  { href: "/duvida", label: "Dúvida", icon: MessageCircleQuestion },
   { href: "/treino", label: "Treino", icon: Dumbbell },
   { href: "/revisao", label: "Revisão", icon: Sparkles },
+  { href: "/formulas", label: "Fórmulas", icon: BookOpen },
   { href: "/prova", label: "Prova", icon: GraduationCap },
   { href: "/conquistas", label: "Conquistas", icon: Trophy },
   { href: "/perfil", label: "Perfil", icon: User },
@@ -98,11 +110,54 @@ function Sidebar() {
             );
           })}
         </nav>
-        <div className="mt-6">
+        <div className="mt-6 flex flex-col gap-3">
+          <AuthBadge />
           <ThemeSwitcher />
         </div>
       </div>
     </aside>
+  );
+}
+
+function AuthBadge() {
+  const auth = useAuth();
+  if (!isFirebaseConfigured()) return null;
+  if (auth.status === "loading") {
+    return <div className="text-xs text-[var(--muted)]">Verificando sessão…</div>;
+  }
+  if (auth.status === "signed-in") {
+    const u = auth.user;
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] p-2">
+        {u.photoURL ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={u.photoURL} alt={u.displayName ?? "Usuário"} className="h-8 w-8 rounded-full" referrerPolicy="no-referrer" />
+        ) : (
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold">
+            {(u.displayName ?? u.email ?? "?").slice(0, 1).toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0 flex-1 text-left">
+          <div className="truncate text-xs font-semibold">{u.displayName ?? "Usuário"}</div>
+          <div className="truncate text-[10px] text-[var(--muted)]">{u.email}</div>
+        </div>
+        <button
+          aria-label="Sair"
+          onClick={() => fbSignOut()}
+          className="rounded p-1 text-[var(--muted)] hover:bg-[var(--bg)]"
+        >
+          <LogOut size={14} />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <Link
+      href="/login"
+      className="flex items-center justify-center gap-2 rounded-lg bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-300"
+    >
+      <LogIn size={14} /> Entrar com Google
+    </Link>
   );
 }
 

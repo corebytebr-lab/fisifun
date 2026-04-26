@@ -107,6 +107,7 @@ function kindEmoji(k: string) {
     case "practice": return "✏️";
     case "quiz": return "🏆";
     case "challenge": return "⚡";
+    case "halliday": return "📗";
     default: return "▶";
   }
 }
@@ -118,6 +119,7 @@ function labelKind(k: string) {
     case "practice": return "Prática";
     case "quiz": return "Quiz";
     case "challenge": return "Desafio";
+    case "halliday": return "Problemas do livro";
     default: return "Lição";
   }
 }

@@ -20,6 +20,31 @@ export default function ConfiguracoesPage() {
       </Link>
       <h1 className="text-2xl font-extrabold md:text-3xl">⚙️ Configurações</h1>
 
+      <Card className="border-indigo-500/30 bg-indigo-500/5">
+        <CardTitle>🤖 Tutor IA (Gemini)</CardTitle>
+        <CardSubtitle>
+          Necessário para o botão &quot;Explique melhor&quot; nas questões e para a aba Dúvida. A chave fica só no seu navegador.
+        </CardSubtitle>
+        <div className="mt-3 flex flex-col gap-2">
+          <input
+            type="password"
+            value={state.geminiApiKey}
+            onChange={(e) => state.setGeminiApiKey(e.target.value)}
+            placeholder="AIzaSy…"
+            className="rounded-md border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-2 font-mono text-sm focus:border-indigo-500 focus:outline-none"
+          />
+          <div className="text-xs text-[var(--muted)]">
+            Pegue sua chave grátis (sem cartão) em{" "}
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="font-semibold text-indigo-600 underline">
+              aistudio.google.com/apikey
+            </a>
+            . Modelo usado: <code>gemini-2.0-flash</code>. {state.geminiApiKey && (
+              <span className="font-semibold text-emerald-600">✓ Chave configurada.</span>
+            )}
+          </div>
+        </div>
+      </Card>
+
       <Card>
         <CardTitle>Aparência</CardTitle>
         <CardSubtitle>Escolha o tema do app.</CardSubtitle>
