@@ -100,8 +100,12 @@ function createAuditorium(
   ro.observe(container);
 
   // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
-  scene.add(new THREE.HemisphereLight(0xfff1c0, 0x302060, 0.55));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  scene.add(new THREE.HemisphereLight(0xfff1c0, 0x402030, 0.7));
+  // Subtle warm glow from the ceiling lamps.
+  const ceilingGlow = new THREE.PointLight(0xffd166, 0.55, 22);
+  ceilingGlow.position.set(0, 9.5, 5);
+  scene.add(ceilingGlow);
 
   // Spot lights the audience.
   const spot = new THREE.SpotLight(0xfff5d6, 1.6, 50, Math.PI / 4.0, 0.45, 1.1);
@@ -128,13 +132,94 @@ function createAuditorium(
   floor.receiveShadow = true;
   scene.add(floor);
 
-  // Walls hint (very subtle far backdrop)
-  const wall = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 12),
-    new THREE.MeshStandardMaterial({ color: 0x171036, roughness: 0.9 })
+  // ---- Auditorium room ----------------------------------------------------
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x4d2c2c, roughness: 0.85 });
+  const panelMat = new THREE.MeshStandardMaterial({ color: 0x6c3b30, roughness: 0.7 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0xc89b4a, roughness: 0.6, metalness: 0.3 });
+  const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x1a1024, roughness: 0.95 });
+
+  // Back wall (far behind audience).
+  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(28, 14), wallMat);
+  backWall.position.set(0, 7, 14);
+  backWall.receiveShadow = true;
+  scene.add(backWall);
+
+  // Decorative panels on back wall.
+  for (let p = -3; p <= 3; p++) {
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(2.5, 4, 0.2), panelMat);
+    panel.position.set(p * 3.2, 5, 13.85);
+    scene.add(panel);
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.18, 0.22), trimMat);
+    trim.position.set(p * 3.2, 7.1, 13.84);
+    scene.add(trim);
+  }
+
+  // Side walls.
+  const wallL = new THREE.Mesh(new THREE.PlaneGeometry(20, 14), wallMat);
+  wallL.position.set(-9.5, 7, 5);
+  wallL.rotation.y = Math.PI / 2;
+  scene.add(wallL);
+  const wallR = new THREE.Mesh(new THREE.PlaneGeometry(20, 14), wallMat);
+  wallR.position.set(9.5, 7, 5);
+  wallR.rotation.y = -Math.PI / 2;
+  scene.add(wallR);
+
+  // Ceiling.
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(22, 22), ceilingMat);
+  ceiling.position.set(0, 11, 4);
+  ceiling.rotation.x = Math.PI / 2;
+  scene.add(ceiling);
+
+  // Hanging ceiling lights (warm emissive discs).
+  const lampMat = new THREE.MeshStandardMaterial({
+    color: 0xffe7a3,
+    emissive: 0xffd166,
+    emissiveIntensity: 1.2,
+  });
+  for (let lr = 0; lr < 3; lr++) {
+    for (let lc = -2; lc <= 2; lc++) {
+      const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.08, 18), lampMat);
+      lamp.position.set(lc * 3.4, 10.85, 1.5 + lr * 4.2);
+      scene.add(lamp);
+      const cord = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.012, 0.4, 6),
+        new THREE.MeshStandardMaterial({ color: 0x111111 })
+      );
+      cord.position.set(lc * 3.4, 11.05, 1.5 + lr * 4.2);
+      scene.add(cord);
+    }
+  }
+
+  // Columns along the side walls (decorative).
+  const colMat = new THREE.MeshStandardMaterial({ color: 0xc89b4a, roughness: 0.55, metalness: 0.2 });
+  for (let cz = 1; cz <= 4; cz++) {
+    const z = 0.5 + cz * 3.0;
+    [-9.0, 9.0].forEach((cx) => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 11, 14), colMat);
+      col.position.set(cx, 5.5, z);
+      scene.add(col);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 0.7), colMat);
+      cap.position.set(cx, 10.95, z);
+      scene.add(cap);
+      const baseB = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 0.7), colMat);
+      baseB.position.set(cx, 0.1, z);
+      scene.add(baseB);
+    });
+  }
+
+  // Stage backdrop / proscenium arch behind camera (visible at top of frame).
+  const arch = new THREE.Mesh(
+    new THREE.BoxGeometry(20, 1.0, 0.6),
+    new THREE.MeshStandardMaterial({ color: 0x6c3b30, roughness: 0.6 }),
   );
-  wall.position.set(0, 6, 14);
-  scene.add(wall);
+  arch.position.set(0, 9.0, -1.2);
+  scene.add(arch);
+  const archTrim = new THREE.Mesh(
+    new THREE.BoxGeometry(20, 0.18, 0.7),
+    trimMat,
+  );
+  archTrim.position.set(0, 8.5, -1.18);
+  scene.add(archTrim);
 
   // Stage floor in front of the camera (we're on it).
   const stage = new THREE.Mesh(
@@ -356,11 +441,31 @@ interface LumerObj {
   bobOffset: number;
 }
 
+const SKIN_TONES = [0xf6c8a3, 0xefb37e, 0xd99a72, 0xb37b54, 0x8d5a3c, 0xf2d7b5];
+const HAIR_COLORS = [0x1a1216, 0x2c1a0e, 0x4a2c1a, 0x71492b, 0x9c6b3b, 0xd7a96b, 0xb24a3a, 0x6b6b6b];
+const SHOE_COLORS = [0x141414, 0x2a1a10, 0x422a18];
+
 function buildLumer(accessory: LumerState["accessory"] = "none"): LumerObj {
-  const beakMat = new THREE.MeshStandardMaterial({ color: 0xffb74a, roughness: 0.5 });
-  const footMat = new THREE.MeshStandardMaterial({ color: 0xffa430, roughness: 0.6 });
+  const skinMat = new THREE.MeshStandardMaterial({
+    color: SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)],
+    roughness: 0.7,
+  });
+  const hairMat = new THREE.MeshStandardMaterial({
+    color: HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)],
+    roughness: 0.85,
+  });
+  const shoeMat = new THREE.MeshStandardMaterial({
+    color: SHOE_COLORS[Math.floor(Math.random() * SHOE_COLORS.length)],
+    roughness: 0.6,
+  });
   const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1330, roughness: 0.5 });
   const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+  const lipsMat = new THREE.MeshStandardMaterial({ color: 0xa64b4b, roughness: 0.55 });
+  const irisMat = new THREE.MeshStandardMaterial({
+    color: [0x3a6a4a, 0x4f3826, 0x254a72, 0x6e4a2a, 0x2a2a2a][Math.floor(Math.random() * 5)],
+    roughness: 0.5,
+  });
+
   const root = new THREE.Group();
 
   const bodyMat = new THREE.MeshStandardMaterial({
@@ -382,7 +487,7 @@ function buildLumer(accessory: LumerState["accessory"] = "none"): LumerObj {
   body.receiveShadow = true;
   root.add(body);
 
-  // White belly patch — slightly forward, scaled flat.
+  // Light belly patch — slightly forward, scaled flat.
   const belly = new THREE.Mesh(
     new THREE.SphereGeometry(0.32, 22, 18),
     bellyMat
@@ -391,88 +496,172 @@ function buildLumer(accessory: LumerState["accessory"] = "none"): LumerObj {
   belly.position.set(0, -0.05, 0.22);
   root.add(belly);
 
-  // Head pivot — head is the top portion of the body in Pingu, but we use a
-  // separate sphere so we can tilt it for confusion / nodding.
+  // Neck (small cylinder).
+  const neck = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.13, 0.12, 12),
+    skinMat
+  );
+  neck.position.set(0, 0.5, 0);
+  root.add(neck);
+
+  // Head pivot (so we can tilt for nod / confused).
   const headPivot = new THREE.Group();
   headPivot.position.set(0, 0.62, 0);
   root.add(headPivot);
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 24, 20), bodyMat);
-  head.scale.set(1, 0.95, 1);
+  // Humanoid head (skin sphere, slightly elongated).
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 26, 22), skinMat);
+  head.scale.set(1, 1.1, 1);
   head.castShadow = true;
   headPivot.add(head);
 
-  // Beak (small orange cone pointing forward).
-  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.18, 14), beakMat);
-  beak.rotation.x = Math.PI / 2;
-  beak.position.set(0, -0.02, 0.36);
-  headPivot.add(beak);
+  // Hair — cap on top of head.
+  const hairStyle = Math.floor(Math.random() * 4);
+  if (hairStyle === 0) {
+    // Short cap of hair.
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.345, 22, 16, 0, Math.PI * 2, 0, Math.PI / 2.2), hairMat);
+    hair.scale.set(1.05, 1.0, 1.05);
+    hair.position.set(0, 0.06, -0.02);
+    headPivot.add(hair);
+  } else if (hairStyle === 1) {
+    // Side parted with bangs forward.
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.355, 22, 16, 0, Math.PI * 2, 0, Math.PI / 2.0), hairMat);
+    hair.scale.set(1.02, 0.95, 1.02);
+    hair.position.set(0, 0.05, 0);
+    headPivot.add(hair);
+    const bangs = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.07, 0.06), hairMat);
+    bangs.position.set(0.06, 0.22, 0.28);
+    bangs.rotation.z = -0.2;
+    headPivot.add(bangs);
+  } else if (hairStyle === 2) {
+    // Bun on top.
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.345, 22, 16, 0, Math.PI * 2, 0, Math.PI / 2.4), hairMat);
+    hair.scale.set(1.04, 0.9, 1.04);
+    hair.position.set(0, 0.07, 0);
+    headPivot.add(hair);
+    const bun = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), hairMat);
+    bun.position.set(0, 0.42, -0.04);
+    headPivot.add(bun);
+  } else {
+    // Curly afro (group of small spheres).
+    for (let k = 0; k < 9; k++) {
+      const a = (k / 9) * Math.PI * 2;
+      const r = 0.38;
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), hairMat);
+      ball.position.set(Math.cos(a) * r * 0.7, 0.18 + Math.sin(a * 0.7) * 0.04, Math.sin(a) * r * 0.6 - 0.04);
+      headPivot.add(ball);
+    }
+    const top = new THREE.Mesh(new THREE.SphereGeometry(0.18, 14, 12), hairMat);
+    top.position.set(0, 0.32, -0.02);
+    headPivot.add(top);
+  }
 
-  // Eyes (white) + pupils (dark) — pupils are children of eyes so blink scales both.
-  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 10), whiteMat);
-  eyeL.position.set(-0.13, 0.1, 0.31);
-  eyeL.scale.set(0.95, 1.1, 0.9);
+  // Eyebrows (small dark boxes; tilt for emotion).
+  const browL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.018, 0.02), darkMat);
+  browL.position.set(-0.11, 0.16, 0.31);
+  browL.rotation.z = 0.05;
+  headPivot.add(browL);
+  const browR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.018, 0.02), darkMat);
+  browR.position.set(0.11, 0.16, 0.31);
+  browR.rotation.z = -0.05;
+  headPivot.add(browR);
+
+  // Eyes — white sclera, then iris (color), then small dark pupil.
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.058, 14, 10), whiteMat);
+  eyeL.position.set(-0.11, 0.07, 0.3);
+  eyeL.scale.set(1.0, 0.95, 0.7);
   headPivot.add(eyeL);
-  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 10), whiteMat);
-  eyeR.position.set(0.13, 0.1, 0.31);
-  eyeR.scale.set(0.95, 1.1, 0.9);
+  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.058, 14, 10), whiteMat);
+  eyeR.position.set(0.11, 0.07, 0.3);
+  eyeR.scale.set(1.0, 0.95, 0.7);
   headPivot.add(eyeR);
 
-  const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 10), darkMat);
-  pupilL.position.set(-0.13, 0.1, 0.36);
+  const irisL = new THREE.Mesh(new THREE.SphereGeometry(0.032, 12, 10), irisMat);
+  irisL.position.set(-0.11, 0.07, 0.34);
+  headPivot.add(irisL);
+  const irisR = new THREE.Mesh(new THREE.SphereGeometry(0.032, 12, 10), irisMat);
+  irisR.position.set(0.11, 0.07, 0.34);
+  headPivot.add(irisR);
+
+  const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 8), darkMat);
+  pupilL.position.set(-0.11, 0.07, 0.36);
   headPivot.add(pupilL);
-  const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 10), darkMat);
-  pupilR.position.set(0.13, 0.1, 0.36);
+  const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 8), darkMat);
+  pupilR.position.set(0.11, 0.07, 0.36);
   headPivot.add(pupilR);
 
-  // Mouth (small dark patch under the beak; scales Y when talking).
-  const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), darkMat);
-  mouth.scale.set(1.4, 0.5, 0.4);
-  mouth.position.set(0, -0.12, 0.34);
+  // Nose (small skin sphere slightly forward).
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 10), skinMat);
+  nose.scale.set(1, 1.2, 1.4);
+  nose.position.set(0, 0.0, 0.35);
+  headPivot.add(nose);
+
+  // Mouth — thin curved lips. Built as a small flattened sphere; scales Y when talking.
+  const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.05, 14, 10), lipsMat);
+  mouth.scale.set(1.2, 0.32, 0.4);
+  mouth.position.set(0, -0.09, 0.32);
   headPivot.add(mouth);
 
   // Cheeks (subtle blush).
   const cheekMat = new THREE.MeshStandardMaterial({
     color: 0xff7e94,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.42,
   });
-  const cheekL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 10), cheekMat);
-  cheekL.position.set(-0.22, 0.0, 0.26);
+  const cheekL = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), cheekMat);
+  cheekL.position.set(-0.18, -0.02, 0.27);
   headPivot.add(cheekL);
-  const cheekR = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 10), cheekMat);
-  cheekR.position.set(0.22, 0.0, 0.26);
+  const cheekR = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), cheekMat);
+  cheekR.position.set(0.18, -0.02, 0.27);
   headPivot.add(cheekR);
 
-  // Flipper arms (pivot groups for shoulder rotation).
-  const armGeom = new THREE.SphereGeometry(0.18, 14, 12);
+  // Ears (small skin spheres on the sides).
+  const earL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 10), skinMat);
+  earL.position.set(-0.32, 0.04, 0.02);
+  earL.scale.set(0.6, 1.0, 0.9);
+  headPivot.add(earL);
+  const earR = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 10), skinMat);
+  earR.position.set(0.32, 0.04, 0.02);
+  earR.scale.set(0.6, 1.0, 0.9);
+  headPivot.add(earR);
+
+  // Arms (pivot groups for shoulder rotation). Cylinder upper-arm + small skin hand.
+  const armUpperGeom = new THREE.SphereGeometry(0.18, 14, 12);
+  const handGeom = new THREE.SphereGeometry(0.09, 12, 10);
+
   const leftArmPivot = new THREE.Group();
   leftArmPivot.position.set(-0.42, 0.34, 0);
-  const leftArm = new THREE.Mesh(armGeom, bodyMat);
+  const leftArm = new THREE.Mesh(armUpperGeom, bodyMat);
   leftArm.scale.set(0.55, 1.5, 0.9);
   leftArm.position.set(-0.05, -0.18, 0);
   leftArm.castShadow = true;
   leftArmPivot.add(leftArm);
+  const leftHand = new THREE.Mesh(handGeom, skinMat);
+  leftHand.position.set(-0.07, -0.45, 0);
+  leftArmPivot.add(leftHand);
   root.add(leftArmPivot);
 
   const rightArmPivot = new THREE.Group();
   rightArmPivot.position.set(0.42, 0.34, 0);
-  const rightArm = new THREE.Mesh(armGeom, bodyMat);
+  const rightArm = new THREE.Mesh(armUpperGeom, bodyMat);
   rightArm.scale.set(0.55, 1.5, 0.9);
   rightArm.position.set(0.05, -0.18, 0);
   rightArm.castShadow = true;
   rightArmPivot.add(rightArm);
+  const rightHand = new THREE.Mesh(handGeom, skinMat);
+  rightHand.position.set(0.07, -0.45, 0);
+  rightArmPivot.add(rightHand);
   root.add(rightArmPivot);
 
-  // Feet (orange ovoids at base).
-  const footGeom = new THREE.SphereGeometry(0.14, 12, 10);
-  const footL = new THREE.Mesh(footGeom, footMat);
-  footL.scale.set(1.2, 0.45, 1.6);
-  footL.position.set(-0.18, -0.6, 0.18);
+  // Shoes (dark ovoids at base).
+  const shoeGeom = new THREE.SphereGeometry(0.13, 12, 10);
+  const footL = new THREE.Mesh(shoeGeom, shoeMat);
+  footL.scale.set(1.1, 0.5, 1.7);
+  footL.position.set(-0.18, -0.6, 0.16);
   root.add(footL);
-  const footR = new THREE.Mesh(footGeom, footMat);
-  footR.scale.set(1.2, 0.45, 1.6);
-  footR.position.set(0.18, -0.6, 0.18);
+  const footR = new THREE.Mesh(shoeGeom, shoeMat);
+  footR.scale.set(1.1, 0.5, 1.7);
+  footR.position.set(0.18, -0.6, 0.16);
   root.add(footR);
 
   // Accessory variations
