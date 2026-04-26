@@ -695,7 +695,10 @@ function composeExplanation(spoken: string, board: string, hasDrawing: boolean):
 
 function BottomPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-3xl rounded-t-3xl border-t border-white/10 bg-black/70 p-4 backdrop-blur-md md:p-5">
+    <div className="mx-auto max-h-[58vh] max-w-3xl overflow-y-auto overscroll-contain rounded-t-3xl border-t border-white/10 bg-black/80 p-4 backdrop-blur-md md:max-h-[70vh] md:p-5">
+      <div className="mb-1 flex justify-center">
+        <div className="h-1 w-10 rounded-full bg-white/20" aria-hidden />
+      </div>
       <div className="mb-2 text-sm font-bold uppercase tracking-wider text-indigo-300">{title}</div>
       {children}
     </div>

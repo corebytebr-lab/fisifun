@@ -433,7 +433,7 @@ interface LumerObj {
   eyeR: THREE.Mesh;
   pupilL: THREE.Mesh;
   pupilR: THREE.Mesh;
-  mouth: THREE.Mesh;
+  mouth: THREE.Object3D;
   bodyMat: THREE.MeshStandardMaterial;
   bellyMat: THREE.MeshStandardMaterial;
   seed: number;
@@ -557,49 +557,78 @@ function buildLumer(accessory: LumerState["accessory"] = "none"): LumerObj {
   }
 
   // Eyebrows (small dark boxes; tilt for emotion).
-  const browL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.018, 0.02), darkMat);
-  browL.position.set(-0.11, 0.16, 0.31);
-  browL.rotation.z = 0.05;
+  const browGeom = new THREE.BoxGeometry(0.09, 0.02, 0.02);
+  const browL = new THREE.Mesh(browGeom, darkMat);
+  browL.position.set(-0.13, 0.19, 0.3);
+  browL.rotation.z = 0.1;
   headPivot.add(browL);
-  const browR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.018, 0.02), darkMat);
-  browR.position.set(0.11, 0.16, 0.31);
-  browR.rotation.z = -0.05;
+  const browR = new THREE.Mesh(browGeom, darkMat);
+  browR.position.set(0.13, 0.19, 0.3);
+  browR.rotation.z = -0.1;
   headPivot.add(browR);
 
-  // Eyes — white sclera, then iris (color), then small dark pupil.
-  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.058, 14, 10), whiteMat);
-  eyeL.position.set(-0.11, 0.07, 0.3);
-  eyeL.scale.set(1.0, 0.95, 0.7);
+  // Eyes — big expressive anime-style. White sclera, colored iris, dark pupil,
+  // plus a small white catchlight for liveliness.
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 18, 14), whiteMat);
+  eyeL.position.set(-0.12, 0.08, 0.27);
+  eyeL.scale.set(1.0, 1.15, 0.7);
   headPivot.add(eyeL);
-  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.058, 14, 10), whiteMat);
-  eyeR.position.set(0.11, 0.07, 0.3);
-  eyeR.scale.set(1.0, 0.95, 0.7);
+  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.09, 18, 14), whiteMat);
+  eyeR.position.set(0.12, 0.08, 0.27);
+  eyeR.scale.set(1.0, 1.15, 0.7);
   headPivot.add(eyeR);
 
-  const irisL = new THREE.Mesh(new THREE.SphereGeometry(0.032, 12, 10), irisMat);
-  irisL.position.set(-0.11, 0.07, 0.34);
+  const irisL = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 12), irisMat);
+  irisL.position.set(-0.12, 0.07, 0.32);
   headPivot.add(irisL);
-  const irisR = new THREE.Mesh(new THREE.SphereGeometry(0.032, 12, 10), irisMat);
-  irisR.position.set(0.11, 0.07, 0.34);
+  const irisR = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 12), irisMat);
+  irisR.position.set(0.12, 0.07, 0.32);
   headPivot.add(irisR);
 
-  const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 8), darkMat);
-  pupilL.position.set(-0.11, 0.07, 0.36);
+  const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.028, 12, 10), darkMat);
+  pupilL.position.set(-0.12, 0.07, 0.35);
   headPivot.add(pupilL);
-  const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 8), darkMat);
-  pupilR.position.set(0.11, 0.07, 0.36);
+  const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.028, 12, 10), darkMat);
+  pupilR.position.set(0.12, 0.07, 0.35);
   headPivot.add(pupilR);
 
-  // Nose (small skin sphere slightly forward).
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 10), skinMat);
-  nose.scale.set(1, 1.2, 1.4);
-  nose.position.set(0, 0.0, 0.35);
+  // Catchlights (tiny white highlights upper-left of each pupil).
+  const catchMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.6,
+  });
+  const catchL = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 8), catchMat);
+  catchL.position.set(-0.105, 0.095, 0.37);
+  headPivot.add(catchL);
+  const catchR = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 8), catchMat);
+  catchR.position.set(0.135, 0.095, 0.37);
+  headPivot.add(catchR);
+
+  // Nose — small, tasteful bump.
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.025, 12, 10), skinMat);
+  nose.scale.set(1.1, 1.1, 1.2);
+  nose.position.set(0, -0.02, 0.34);
   headPivot.add(nose);
 
-  // Mouth — thin curved lips. Built as a small flattened sphere; scales Y when talking.
-  const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.05, 14, 10), lipsMat);
-  mouth.scale.set(1.2, 0.32, 0.4);
-  mouth.position.set(0, -0.09, 0.32);
+  // Mouth — curved smile using a partial torus (lower half semicircle).
+  // Grouped so we can scale Y for "talking" animation without deforming the geometry center.
+  const mouth = new THREE.Group();
+  const smile = new THREE.Mesh(
+    new THREE.TorusGeometry(0.055, 0.011, 10, 18, Math.PI),
+    lipsMat,
+  );
+  smile.rotation.z = Math.PI; // flip so arc faces down like a :) smile
+  mouth.add(smile);
+  // Tiny dark fill inside the smile for subtle mouth interior.
+  const mouthFill = new THREE.Mesh(
+    new THREE.SphereGeometry(0.028, 12, 10),
+    new THREE.MeshStandardMaterial({ color: 0x3a1a1e, roughness: 0.6 }),
+  );
+  mouthFill.scale.set(1.2, 0.45, 0.35);
+  mouthFill.position.set(0, -0.01, 0);
+  mouth.add(mouthFill);
+  mouth.position.set(0, -0.09, 0.33);
   headPivot.add(mouth);
 
   // Cheeks (subtle blush).
