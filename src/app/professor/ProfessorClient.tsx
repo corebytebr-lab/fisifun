@@ -42,18 +42,65 @@ const LUMER_NAMES = [
   "Kiko",
   "Dora",
   "Pipo",
+  "Tato",
+  "Mimi",
+  "Bento",
+  "Coco",
+  "Gigi",
+  "Tuca",
+  "Lalá",
+  "Pim",
+  "Vovô Lu",
+  "Maca",
+  "Yuki",
+  "Nê",
 ] as const;
 
 const LUMER_COLORS = [
-  "#ff9fb0",
-  "#9bd6ff",
-  "#fbd36b",
-  "#b89cff",
-  "#82e8c4",
-  "#ffb17a",
-  "#ff86d6",
-  "#a3f09c",
+  "#1f2236",
+  "#2a1f4a",
+  "#26344a",
+  "#3a2240",
+  "#1c2c33",
+  "#3a2a1c",
+  "#3b1f2c",
+  "#1f3324",
+  "#2c1c3a",
+  "#2a2a2a",
+  "#22324d",
+  "#1d2734",
+  "#3d2540",
+  "#1e2a26",
+  "#2f2030",
+  "#1c2034",
+  "#3a2a26",
+  "#2a3030",
+  "#23264a",
+  "#311e1e",
 ];
+
+const LUMER_ACCESSORIES = [
+  "none",
+  "scarf",
+  "glasses",
+  "none",
+  "bowtie",
+  "cap",
+  "scarf",
+  "none",
+  "glasses",
+  "scarf",
+  "none",
+  "bowtie",
+  "cap",
+  "scarf",
+  "glasses",
+  "none",
+  "bowtie",
+  "none",
+  "scarf",
+  "glasses",
+] as const;
 
 const NUM_QUESTIONS = 3;
 
@@ -90,6 +137,7 @@ export function ProfessorClient() {
       LUMER_NAMES.map<LumerState>((name, i) => ({
         name,
         color: LUMER_COLORS[i % LUMER_COLORS.length],
+        accessory: LUMER_ACCESSORIES[i % LUMER_ACCESSORIES.length],
         mood: "idle",
       })),
     []
@@ -104,14 +152,18 @@ export function ProfessorClient() {
         if (i === 2) {
           mood = "raise";
           focused = true;
+        } else if (i % 3 === 0) {
+          mood = "confused";
         } else mood = "boo";
       } else if (phase === "question-ask" || phase === "answer-evaluating" || phase === "answer-feedback") {
         if (i === askingLumerIdx) {
           mood = "raise";
           focused = true;
+        } else if (i % 5 === 0) {
+          mood = "confused";
         } else mood = "nod";
       } else if (phase === "evaluating" || phase === "question-loading") {
-        mood = "nod";
+        mood = i % 7 === 0 ? "confused" : "nod";
       }
       return { ...l, mood, focused };
     });
@@ -133,8 +185,10 @@ export function ProfessorClient() {
   }, [phase, correctAnswersCount, awardXp]);
 
   function pickAskingLumer() {
-    // Pick a random lumer different from previous ones when possible
-    const pool = [0, 1, 3, 4, 5, 6, 7]; // skip index 2 which we reserve for "doubt" in wrong-case
+    // Pick a random lumer different from previous ones when possible.
+    const total = LUMER_NAMES.length;
+    const pool: number[] = [];
+    for (let i = 0; i < total; i++) if (i !== 2) pool.push(i);
     const randomIdx = pool[Math.floor(Math.random() * pool.length)];
     setAskingLumerIdx(randomIdx);
     return randomIdx;
