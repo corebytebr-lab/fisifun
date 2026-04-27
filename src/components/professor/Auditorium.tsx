@@ -77,9 +77,12 @@ function createAuditorium(
   scene.fog = new THREE.Fog("#0b1028", 16, 36);
 
   // Professor POV: standing on stage looking at the plateia.
+  // Camera params adjust for portrait/landscape on `resize()` below.
   const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 100);
   camera.position.set(0, 3.4, -2.6);
   camera.lookAt(0, 1.8, 7);
+  // Look-at target is held in a vec3 so we can re-aim on resize.
+  const camTarget = new THREE.Vector3(0, 1.8, 7);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -92,7 +95,34 @@ function createAuditorium(
     const w = container.clientWidth;
     const h = container.clientHeight;
     renderer.setSize(w, h, false);
-    camera.aspect = w / Math.max(1, h);
+    const aspect = w / Math.max(1, h);
+    camera.aspect = aspect;
+    // Adapt framing to the aspect ratio so all 20 lumers fit AND fill the
+    // visible canvas. On phones the camera sits higher and looks further
+    // down so the audience occupies most of the frame instead of leaving a
+    // tall band of ceiling/columns above them.
+    if (aspect < 0.75) {
+      // very tall portrait (typical phone in portrait above the drawer)
+      camera.fov = 82;
+      camera.position.set(0, 4.6, -4.2);
+      camTarget.set(0, 0.4, 7);
+    } else if (aspect < 1.1) {
+      // squarish (phone landscape, small windows)
+      camera.fov = 70;
+      camera.position.set(0, 4.1, -3.4);
+      camTarget.set(0, 0.9, 7);
+    } else if (aspect < 1.7) {
+      // standard tablet/landscape
+      camera.fov = 60;
+      camera.position.set(0, 3.6, -2.8);
+      camTarget.set(0, 1.5, 7);
+    } else {
+      // wide desktop
+      camera.fov = 54;
+      camera.position.set(0, 3.4, -2.6);
+      camTarget.set(0, 1.8, 7);
+    }
+    camera.lookAt(camTarget);
     camera.updateProjectionMatrix();
   }
   resize();

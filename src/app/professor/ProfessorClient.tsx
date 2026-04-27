@@ -406,14 +406,18 @@ export function ProfessorClient() {
     );
   }
 
-  // Auditorium phases: full-screen black stage
+  // Auditorium phases: full-screen black stage.
+  // On mobile we split the viewport vertically (scene on top, panel on bottom)
+  // so the bottom drawer never covers the audience. On desktop the panel
+  // overlays the bottom of the scene as before.
   return (
-    <div className="fixed inset-0 z-50 bg-[#0b1028] text-white">
-      {/* 3D scene */}
-      <Auditorium lumers={lumerStates} curtain={curtain} />
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#0b1028] text-white">
+      {/* 3D scene fills the remaining space above the bottom panel */}
+      <div className="relative min-h-0 flex-1">
+        <Auditorium lumers={lumerStates} curtain={curtain} />
 
-      {/* Top bar */}
-      <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/60 to-transparent px-4 py-3 md:px-6">
+        {/* Top bar (inside the scene region) */}
+        <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/60 to-transparent px-4 py-3 md:px-6">
         <button
           onClick={backToSelect}
           className="flex items-center gap-2 rounded-lg bg-black/50 px-3 py-1.5 text-sm font-medium backdrop-blur hover:bg-black/70"
@@ -428,10 +432,12 @@ export function ProfessorClient() {
             {topic?.chapterTitle}
           </span>
         </div>
+        </div>
       </div>
 
-      {/* Phase-specific overlays (bottom drawer) */}
-      <div className="absolute inset-x-0 bottom-0 z-10">
+      {/* Phase-specific bottom drawer (sits below the 3D scene on mobile,
+          overlays the lower portion via flex layout on desktop) */}
+      <div className="z-10 shrink-0">
         {phase === "intro" && (
           <BottomPanel title={`Assunto: ${topic?.title}`}>
             <div className="mb-3 rounded-lg bg-indigo-500/10 p-3 text-sm text-indigo-200">
@@ -695,7 +701,7 @@ function composeExplanation(spoken: string, board: string, hasDrawing: boolean):
 
 function BottomPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-h-[58vh] max-w-3xl overflow-y-auto overscroll-contain rounded-t-3xl border-t border-white/10 bg-black/80 p-4 backdrop-blur-md md:max-h-[70vh] md:p-5">
+    <div className="mx-auto max-h-[50vh] max-w-3xl overflow-y-auto overscroll-contain rounded-t-3xl border-t border-white/10 bg-black/85 p-4 backdrop-blur-md md:max-h-[70vh] md:p-5">
       <div className="mb-1 flex justify-center">
         <div className="h-1 w-10 rounded-full bg-white/20" aria-hidden />
       </div>
