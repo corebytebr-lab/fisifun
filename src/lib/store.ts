@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { SrsItem } from "./types";
+import type { SrsItem, Subject } from "./types";
 
 export interface LessonProgress {
   completed: boolean;
@@ -52,6 +52,7 @@ export interface PersistedState {
   reminderTime: string | null; // HH:MM, local
   focusMode: boolean; // sem distração
   infiniteHearts: boolean; // vida infinita
+  geminiApiKey: string; // chave do Google Gemini (fica só no navegador)
 
   // Progress
   lessonProgress: Record<string, LessonProgress>; // key = `${chapterId}/${lessonId}`
@@ -68,6 +69,68 @@ export interface PersistedState {
   // Finale
   gameCompleted: boolean;
   gameCompletedAt: number | null;
+
+  // Novas features
+  notes: Record<string, string>; // chapterId -> markdown
+  formulaSrs: Record<string, SrsItem>; // formulaId -> SrsItem
+  studyPlan: {
+    examDate: string | null; // YYYY-MM-DD
+    chapters: string[]; // chapter ids que caem
+    dailyMinutes: number;
+    createdAt: number | null;
+  };
+  pomodoroMinutes: number; // foco (default 25)
+  pomodoroBreak: number; // pausa (default 5)
+
+  // Problemas do Halliday: 'correct' | 'wrong' | ausente (nunca tentou)
+  hallidayProgress: Record<string, "correct" | "wrong">;
+
+  // Matéria atualmente selecionada (Física vs Química). Filtros de capítulos
+  // e ações de página (trilha, problemas, professor, flashcards) usam isso.
+  currentSubject: Subject;
+
+  // Onboarding: se o usuário ainda não escolheu matéria pela tela /escolher.
+  hasChosenSubject?: boolean;
+
+  // === Telemetria pra conquistas ===
+  // Status de problemas do livro (alias de hallidayProgress, com chaves "right" / "wrong")
+  hallidayStatus?: Record<string, "right" | "wrong">;
+  professorSessions?: number;
+  bossDefeated?: number;
+  toolsUsed?: string[];
+  gameStats?: Record<string, { plays: number; bestScore?: number }>;
+  subjectsStudiedByDay?: Record<string, Subject[]>; // YYYY-MM-DD → matérias estudadas
+  flags?: {
+    studiedAtNight?: boolean;
+    studiedEarlyMorning?: boolean;
+    studiedLateNight?: boolean;
+    studiedSunday?: boolean;
+    studiedNewYear?: boolean;
+    studiedChristmas?: boolean;
+    comeback7d?: boolean;
+    streakCorrect?: number;
+    professorRuns?: number;
+    professorBest?: number;
+    gamesPlayed?: number;
+    distinctGamesPlayed?: number;
+    bossWins?: number;
+    srsReviews?: number;
+    srsClearedFullDay?: boolean;
+    wrongRedone?: number;
+    usedPeriodicTable?: boolean;
+    usedBalancer?: boolean;
+    usedVetorCalc?: boolean;
+    usedGAPlotter?: boolean;
+    usedDerivCalc?: boolean;
+    usedRiemann?: boolean;
+    usedLimitViewer?: boolean;
+    distinctToolsUsed?: number;
+    aiQueries?: number;
+    aiPhotoQueries?: number;
+    referrals?: number;
+    dueloWins?: number;
+    areasVisited?: number;
+  };
 }
 
 export interface GameState extends PersistedState {
@@ -83,6 +146,7 @@ export interface GameState extends PersistedState {
   setTheme: (t: "light" | "dark" | "system") => void;
   setFocusMode: (v: boolean) => void;
   setInfiniteHearts: (v: boolean) => void;
+  setGeminiApiKey: (k: string) => void;
   setDailyGoal: (xp: number) => void;
   setReminderTime: (t: string | null) => void;
   setUsername: (n: string) => void;
@@ -92,6 +156,18 @@ export interface GameState extends PersistedState {
   reviewSrs: (exerciseId: string, correct: boolean) => void;
   markGameCompleted: () => void;
   resetProgress: () => void;
+
+  setNote: (chapterId: string, md: string) => void;
+  reviewFormulaSrs: (formulaId: string, quality: 0 | 1 | 2) => void; // 0=errou, 1=difícil, 2=fácil
+  setStudyPlan: (plan: PersistedState["studyPlan"]) => void;
+  setPomodoro: (minutes: number, breakMin: number) => void;
+  markHalliday: (problemId: string, result: "correct" | "wrong") => void;
+  setCurrentSubject: (s: Subject) => void;
+  setHasChosenSubject: (v: boolean) => void;
+  recordToolUse: (tool: string) => void;
+  recordProfessorSession: () => void;
+  recordBossDefeated: () => void;
+  recordGamePlay: (gameId: string, score?: number) => void;
 }
 
 const todayKey = (d = new Date()) => {
@@ -124,17 +200,17 @@ export const xpForLevel = (level: number) => {
   return { total, nextNeed: need };
 };
 
-const HEART_REGEN_MS = 25 * 60 * 1000; // 25 min per heart
+const HEART_REGEN_MS = 20 * 60 * 1000; // 20 min per heart
 
 const initial: PersistedState = {
   username: "Estudante",
-  avatar: "🧑‍🚀",
+  avatar: "🦊",
 
   xp: 0,
   level: 1,
   coins: 0,
-  hearts: 5,
-  maxHearts: 5,
+  hearts: 20,
+  maxHearts: 20,
   lastHeartRegenAt: Date.now(),
   streak: 0,
   longestStreak: 0,
@@ -145,7 +221,8 @@ const initial: PersistedState = {
   soundEnabled: true,
   reminderTime: null,
   focusMode: false,
-  infiniteHearts: true,
+  infiniteHearts: false,
+  geminiApiKey: "",
 
   lessonProgress: {},
   chapterUnlocked: { "01-medicao": true },
@@ -158,6 +235,14 @@ const initial: PersistedState = {
   srs: {},
   gameCompleted: false,
   gameCompletedAt: null,
+
+  notes: {},
+  formulaSrs: {},
+  studyPlan: { examDate: null, chapters: [], dailyMinutes: 30, createdAt: null },
+  pomodoroMinutes: 25,
+  pomodoroBreak: 5,
+  hallidayProgress: {},
+  currentSubject: "fisica",
 };
 
 const upsertDaily = (log: DailyLog[], patch: Partial<DailyLog>): DailyLog[] => {
@@ -298,6 +383,7 @@ export const useGame = create<GameState>()(
       setTheme: (t) => set({ theme: t }),
       setFocusMode: (v) => set({ focusMode: v }),
       setInfiniteHearts: (v) => set({ infiniteHearts: v, hearts: v ? get().maxHearts : get().hearts }),
+      setGeminiApiKey: (k) => set({ geminiApiKey: k }),
       setDailyGoal: (n) => set({ dailyGoalXp: n }),
       setReminderTime: (t) => set({ reminderTime: t }),
       setUsername: (n) => set({ username: n }),
@@ -342,14 +428,120 @@ export const useGame = create<GameState>()(
       markGameCompleted: () => set({ gameCompleted: true, gameCompletedAt: Date.now() }),
 
       resetProgress: () => set({ ...initial }),
+
+      setNote: (chapterId, md) => set({ notes: { ...get().notes, [chapterId]: md } }),
+
+      reviewFormulaSrs: (formulaId, quality) => {
+        const now = Date.now();
+        const cur: SrsItem = get().formulaSrs[formulaId] ?? {
+          exerciseId: formulaId,
+          chapterId: "",
+          lessonId: "",
+          ease: 2.5,
+          interval: 0,
+          correctStreak: 0,
+          lapses: 0,
+          dueDate: now,
+        };
+        let { ease, interval, correctStreak, lapses } = cur;
+        if (quality === 0) {
+          lapses += 1;
+          correctStreak = 0;
+          interval = 1;
+          ease = Math.max(1.3, ease - 0.2);
+        } else {
+          correctStreak += 1;
+          if (quality === 1) ease = Math.max(1.3, ease - 0.05);
+          else ease = ease + 0.1;
+          if (correctStreak === 1) interval = 1;
+          else if (correctStreak === 2) interval = 3;
+          else interval = Math.round(interval * ease);
+        }
+        const dueDate = now + interval * 24 * 60 * 60 * 1000;
+        const updated: SrsItem = {
+          exerciseId: formulaId,
+          chapterId: cur.chapterId,
+          lessonId: cur.lessonId,
+          ease,
+          interval,
+          correctStreak,
+          lapses,
+          dueDate,
+        };
+        set({ formulaSrs: { ...get().formulaSrs, [formulaId]: updated } });
+      },
+
+      setStudyPlan: (plan) => set({ studyPlan: { ...plan, createdAt: plan.createdAt ?? Date.now() } }),
+
+      setPomodoro: (minutes, breakMin) => set({ pomodoroMinutes: minutes, pomodoroBreak: breakMin }),
+
+      markHalliday: (problemId, result) => {
+        const prev = get().hallidayProgress[problemId];
+        set((s) => ({ hallidayProgress: { ...s.hallidayProgress, [problemId]: result } }));
+        // First-time correct = XP reward (prevents farming)
+        if (result === "correct" && prev !== "correct") {
+          // XP depends on difficulty embedded in id (cap{ch}-p{num}); caller pass XP via separate awardXp.
+          // We just flag the progress; awardXp handled by caller.
+        }
+      },
+
+      setCurrentSubject: (s) => {
+        const today = todayKey();
+        const cur = get();
+        const studied = cur.subjectsStudiedByDay ?? {};
+        const set0 = new Set([...(studied[today] ?? []), s]);
+        set({
+          currentSubject: s,
+          subjectsStudiedByDay: { ...studied, [today]: Array.from(set0) },
+        });
+      },
+      setHasChosenSubject: (v) => set({ hasChosenSubject: v }),
+      recordToolUse: (tool) => {
+        const cur = get().toolsUsed ?? [];
+        if (!cur.includes(tool)) set({ toolsUsed: [...cur, tool] });
+      },
+      recordProfessorSession: () => set({ professorSessions: (get().professorSessions ?? 0) + 1 }),
+      recordBossDefeated: () => set({ bossDefeated: (get().bossDefeated ?? 0) + 1 }),
+      recordGamePlay: (gameId, score) => {
+        const stats = get().gameStats ?? {};
+        const prev = stats[gameId] ?? { plays: 0 };
+        const next = {
+          plays: prev.plays + 1,
+          bestScore: score !== undefined ? Math.max(prev.bestScore ?? 0, score) : prev.bestScore,
+        };
+        set({ gameStats: { ...stats, [gameId]: next } });
+      },
     }),
     {
       name: "fisifun-state",
-      version: 2,
+      version: 7,
       migrate: (persisted: unknown, version: number) => {
-        const s = (persisted as Partial<PersistedState>) ?? {};
-        if (version < 2) {
-          return { ...s, infiniteHearts: true } as PersistedState;
+        let s = (persisted as Partial<PersistedState>) ?? {};
+        if (version < 2) s = { ...s, infiniteHearts: false };
+        if (version < 7) {
+          s = {
+            ...s,
+            infiniteHearts: false,
+            maxHearts: 20,
+            hearts: typeof s.hearts === "number" ? Math.min(s.hearts, 20) : 20,
+          };
+        }
+        if (version < 3) s = { ...s, geminiApiKey: s.geminiApiKey ?? "" };
+        if (version < 4) {
+          s = {
+            ...s,
+            notes: s.notes ?? {},
+            formulaSrs: s.formulaSrs ?? {},
+            studyPlan: s.studyPlan ?? { examDate: null, chapters: [], dailyMinutes: 30, createdAt: null },
+            pomodoroMinutes: s.pomodoroMinutes ?? 25,
+            pomodoroBreak: s.pomodoroBreak ?? 5,
+          };
+        }
+        if (version < 5) {
+          s = { ...s, hallidayProgress: s.hallidayProgress ?? {} };
+        }
+        if (version < 6) {
+          s = { ...s, currentSubject: s.currentSubject ?? "fisica" };
         }
         return s as PersistedState;
       },

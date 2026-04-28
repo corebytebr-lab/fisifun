@@ -6,7 +6,7 @@ export const cap11 = chapter({
   title: "Rolamento, Torque e Momento Angular",
   subtitle: "Conservação do momento angular, giroscópios e rolagem",
   color: "#a855f7",
-  emoji: "🎡",
+  emoji: "💡",
   objectives: [
     "Analisar o rolamento como translação + rotação.",
     "Aplicar conservação do momento angular.",

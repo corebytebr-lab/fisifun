@@ -1,0 +1,198 @@
+// FisiFun database schema
+// Auth + admin + per-user gameplay state synced to Postgres
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  role          Role      @default(STUDENT)
+  active        Boolean   @default(true)
+  classGroup    String?   // optional turma label
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  // Persisted gameplay state (single row per user, JSON blob mirroring zustand)
+  state         UserState?
+
+  // Per-record granular tables (queryable for admin/dashboard)
+  attempts      Attempt[]
+  wrongs        Wrong[]
+  srsItems      SrsItem[]
+  notes         Note[]
+  professorRuns ProfessorRun[]
+  authLogs      AuthLog[]
+  auditLogs     AuditLog[]   @relation("AuditActor")
+  inboxMessages InboxMessage[]
+
+  @@index([role])
+  @@index([active])
+  @@index([classGroup])
+}
+
+model UserState {
+  userId        String  @id
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data          Json    // mirror of zustand persisted state
+  level         Int     @default(1)
+  xp            Int     @default(0)
+  coins         Int     @default(0)
+  streak        Int     @default(0)
+  hearts        Int     @default(5)
+  currentSubject String  @default("fisica")
+  totalStudyMin Int     @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+model Attempt {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId  String
+  chapterId   String
+  lessonId    String
+  subject     String
+  correct     Boolean
+  concept     String?
+  at          DateTime @default(now())
+
+  @@index([userId, at])
+  @@index([userId, subject])
+  @@index([chapterId])
+}
+
+model Wrong {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId  String
+  chapterId   String
+  lessonId    String
+  subject     String
+  prompt      String
+  concept     String?
+  at          DateTime @default(now())
+
+  @@unique([userId, exerciseId])
+  @@index([userId])
+}
+
+model SrsItem {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId          String   // exerciseId or formulaId
+  kind            String   // "exercise" | "formula"
+  ease            Float    @default(2.5)
+  interval        Int      @default(0)
+  correctStreak   Int      @default(0)
+  lapses          Int      @default(0)
+  dueDate         DateTime @default(now())
+  lastReview      DateTime?
+
+  @@unique([userId, itemId, kind])
+  @@index([userId, dueDate])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String   @db.Text
+  chapterId String?
+  lessonId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ProfessorRun {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic       String
+  subject     String
+  rating      Int?     // 0..100 (avaliação dos Lumers)
+  durationS   Int?
+  transcript  String?  @db.Text
+  at          DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Notice {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @db.Text
+  kind      String   @default("info") // info, warning, success
+  active    Boolean  @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  audience  String   @default("all")  // all | role | classGroup:<name>
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InboxMessage {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromUserId  String?
+  subject     String
+  body        String   @db.Text
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+model AuthLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  success   Boolean
+  ip        String?
+  ua        String?
+  at        DateTime @default(now())
+
+  @@index([userId, at])
+  @@index([email])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action    String
+  target    String?
+  meta      Json?
+  at        DateTime @default(now())
+
+  @@index([actorId, at])
+  @@index([action])
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}

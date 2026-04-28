@@ -6,7 +6,7 @@ export const cap09 = chapter({
   title: "Centro de Massa e Momento Linear",
   subtitle: "Sistemas de partículas, colisões e impulso",
   color: "#8b5cf6",
-  emoji: "💥",
+  emoji: "🎱",
   objectives: [
     "Localizar o centro de massa de sistemas simples.",
     "Aplicar conservação do momento linear.",

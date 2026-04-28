@@ -77,6 +77,14 @@ export default function EstatisticasPage() {
       </header>
 
       <Card>
+        <CardTitle>Atividade — últimos 90 dias</CardTitle>
+        <CardSubtitle>Cada quadradinho é um dia. Mais escuro = mais XP.</CardSubtitle>
+        <div className="mt-3">
+          <Heatmap dailyLog={state.dailyLog} />
+        </div>
+      </Card>
+
+      <Card>
         <CardTitle>XP nos últimos 7 dias</CardTitle>
         <CardSubtitle>Meta diária: {state.dailyGoalXp} XP</CardSubtitle>
         <div className="mt-3 h-48 w-full">
@@ -154,3 +162,69 @@ export default function EstatisticasPage() {
     </div>
   );
 }
+
+function Heatmap({ dailyLog }: { dailyLog: { dateKey: string; xp: number }[] }) {
+  // Build 90 day grid (~13 weeks), Sun..Sat columns
+  const cells: { key: string; xp: number; date: Date }[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setDate(start.getDate() - 89);
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const entry = dailyLog.find((x) => x.dateKey === key);
+    cells.push({ key, xp: entry?.xp ?? 0, date: d });
+  }
+  // pad start to begin on Sunday
+  const startDow = cells[0].date.getDay();
+  const padded: ({ key: string; xp: number; date: Date } | null)[] = Array(startDow).fill(null).concat(cells);
+  // group into columns of 7
+  const cols: ({ key: string; xp: number; date: Date } | null)[][] = [];
+  for (let i = 0; i < padded.length; i += 7) cols.push(padded.slice(i, i + 7));
+
+  const max = Math.max(...cells.map((c) => c.xp), 50);
+  const intensity = (xp: number) => {
+    if (xp === 0) return "bg-[var(--border)]";
+    const r = xp / max;
+    if (r < 0.25) return "bg-indigo-300/40";
+    if (r < 0.5) return "bg-indigo-400/60";
+    if (r < 0.75) return "bg-indigo-500/80";
+    return "bg-indigo-600";
+  };
+
+  const totalXp = cells.reduce((s, c) => s + c.xp, 0);
+  const activeDays = cells.filter((c) => c.xp > 0).length;
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between text-xs text-[var(--muted)]">
+        <span>{activeDays}/90 dias estudados · {totalXp} XP no período</span>
+        <span className="flex items-center gap-1">
+          menos
+          <span className="h-3 w-3 rounded-sm bg-[var(--border)]" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-300/40" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-400/60" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-500/80" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-600" />
+          mais
+        </span>
+      </div>
+      <div className="flex gap-1 overflow-x-auto pb-2">
+        {cols.map((col, ci) => (
+          <div key={ci} className="flex flex-col gap-1">
+            {col.map((cell, ri) => (
+              <div
+                key={ri}
+                title={cell ? `${cell.date.toLocaleDateString("pt-BR")} · ${cell.xp} XP` : ""}
+                className={`h-3 w-3 rounded-sm ${cell ? intensity(cell.xp) : ""}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+

@@ -6,7 +6,7 @@ export const cap06 = chapter({
   title: "Força e Movimento — II",
   subtitle: "Atrito, força de arrasto e MCU",
   color: "#dc2626",
-  emoji: "🛞",
+  emoji: "🚗",
   objectives: [
     "Diferenciar atrito estático e cinético.",
     "Aplicar atrito em problemas de Newton.",

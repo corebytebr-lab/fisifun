@@ -20,6 +20,13 @@ export default function ConfiguracoesPage() {
       </Link>
       <h1 className="text-2xl font-extrabold md:text-3xl">⚙️ Configurações</h1>
 
+      <Card className="border-indigo-500/30 bg-indigo-500/5">
+        <CardTitle>🤖 Tutor IA</CardTitle>
+        <CardSubtitle>
+          A chave de IA é gerenciada pelo administrador do app. Você não precisa configurar nada — basta usar o botão &quot;Explique melhor&quot;, a aba Dúvida ou o Modo Professor.
+        </CardSubtitle>
+      </Card>
+
       <Card>
         <CardTitle>Aparência</CardTitle>
         <CardSubtitle>Escolha o tema do app.</CardSubtitle>
@@ -78,20 +85,10 @@ export default function ConfiguracoesPage() {
       </Card>
 
       <Card>
-        <CardTitle>Vida infinita 💖</CardTitle>
-        <CardSubtitle>Nunca perca vidas ao errar. Ideal pra quem quer só estudar sem travar.</CardSubtitle>
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            onClick={() => state.setInfiniteHearts(!state.infiniteHearts)}
-            className={`relative h-7 w-12 rounded-full transition ${state.infiniteHearts ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-700"}`}
-          >
-            <div
-              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
-                state.infiniteHearts ? "left-5" : "left-0.5"
-              }`}
-            />
-          </button>
-          <span className="text-sm">{state.infiniteHearts ? "Ativado — ∞ vidas" : "Desativado"}</span>
+        <CardTitle>Vidas 💖</CardTitle>
+        <CardSubtitle>Você tem até 20 vidas. 1 vida regenera a cada 20 minutos.</CardSubtitle>
+        <div className="mt-3 text-sm text-[var(--muted)]">
+          Atualmente: <span className="font-bold text-[var(--fg)]">{state.hearts}/{state.maxHearts}</span>
         </div>
       </Card>
 

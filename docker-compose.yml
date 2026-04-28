@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fisifun
+      POSTGRES_USER: fisifun
+      POSTGRES_PASSWORD: fisifun
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on: [postgres]
+    environment:
+      DATABASE_URL: postgresql://fisifun:fisifun@postgres:5432/fisifun
+      AUTH_SECRET: change-me-in-production-make-this-at-least-32-chars
+      ADMIN_EMAIL: carlosdanielmirandadelima@gmail.com
+      ADMIN_PASSWORD: Iogut9090
+      ADMIN_NAME: Carlos Daniel
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:

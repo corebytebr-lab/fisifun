@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { StateSync } from "@/components/StateSync";
 
 export const metadata: Metadata = {
   title: "FisiFun — Física 1 estilo Duolingo",
   description:
     "Estude Mecânica (Halliday Vol. 1) com trilhas, XP, streak, quizzes e repetição espaçada.",
+  appleWebApp: {
+    capable: true,
+    title: "FisiFun",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
@@ -21,6 +28,8 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="min-h-screen">
         <AppShell>{children}</AppShell>
+        <ServiceWorkerRegister />
+        <StateSync />
       </body>
     </html>
   );

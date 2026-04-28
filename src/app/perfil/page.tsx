@@ -10,7 +10,9 @@ import { totalLessonCount, totalExerciseCount } from "@/content/index";
 import { ChevronLeft, Settings, BarChart3, Flame, Sparkles } from "lucide-react";
 import { useHydrated } from "@/lib/useHydrated";
 
-const AVATARS = ["🧑‍🚀", "🧑‍🔬", "👩‍🔬", "🧑‍🎓", "👩‍🎓", "🦊", "🐺", "🐨", "🦉", "🐱", "🐻", "🤖"];
+// Single-codepoint emojis only (no ZWJ sequences) for maximum cross-platform
+// rendering — older Windows/Android fonts often miss "🧑‍🚀" style emojis.
+const AVATARS = ["😀", "😎", "🤓", "🥳", "🤖", "🦊", "🐺", "🐨", "🦉", "🐱", "🐻", "🐼", "🐯", "🦁", "🐸", "🐧"];
 
 export default function PerfilPage() {
   const mounted = useHydrated();
