@@ -113,7 +113,7 @@ interface Topic {
 
 export function ProfessorClient() {
   const mounted = useHydrated();
-  const apiKey = useGame((s) => s.geminiApiKey);
+
   const awardXp = useGame((s) => s.awardXp);
 
   const [phase, setPhase] = useState<Phase>("select");
@@ -223,10 +223,6 @@ export function ProfessorClient() {
 
   async function submitExplanation() {
     if (!topic) return;
-    if (!apiKey) {
-      setErrorMsg("Configure a chave do Gemini em Configurações → Tutor IA pra dar aula aos Lumers.");
-      return;
-    }
     const text = explanation.trim();
     if (text.length < 20) {
       setErrorMsg("Fale ou escreva uma explicação com pelo menos 20 caracteres.");
@@ -237,7 +233,7 @@ export function ProfessorClient() {
     try {
       const fullExplanation = composeExplanation(text, boardText, boardHasDrawing);
       const ev = await evaluateExplanation({
-        apiKey,
+        apiKey: "",
         topic: topic.title,
         chapterTitle: topic.chapterTitle,
         explanation: fullExplanation,
@@ -263,10 +259,6 @@ export function ProfessorClient() {
       endLesson();
       return;
     }
-    if (!apiKey) {
-      endLesson();
-      return;
-    }
     const idx = pickAskingLumer();
     const lumerName = LUMER_NAMES[idx];
     setPhase("question-loading");
@@ -275,7 +267,7 @@ export function ProfessorClient() {
     setAnswerFeedback(null);
     try {
       const q = await generateQuestion({
-        apiKey,
+        apiKey: "",
         topic: topic.title,
         chapterTitle: topic.chapterTitle,
         explanation: composeExplanation(explanation, boardText, boardHasDrawing),
@@ -295,7 +287,6 @@ export function ProfessorClient() {
 
   async function submitAnswer() {
     if (!topic || !currentQuestion || askingLumerIdx === null) return;
-    if (!apiKey) return;
     const text = answer.trim();
     if (text.length < 3) {
       setErrorMsg("Responda a pergunta antes de enviar.");
@@ -305,7 +296,7 @@ export function ProfessorClient() {
     setPhase("answer-evaluating");
     try {
       const fb = await evaluateAnswer({
-        apiKey,
+        apiKey: "",
         topic: topic.title,
         chapterTitle: topic.chapterTitle,
         question: currentQuestion.question,
@@ -349,16 +340,6 @@ export function ProfessorClient() {
             </p>
           </div>
         </header>
-
-        {!apiKey ? (
-          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
-            ⚠️ Pra rodar o Modo Professor, configure a chave do Gemini em{" "}
-            <Link href="/configuracoes" className="underline font-medium">
-              Configurações → Tutor IA
-            </Link>
-            . Sem ela, os Lumers não conseguem avaliar a explicação.
-          </div>
-        ) : null}
 
         <div className="space-y-4">
           {CHAPTERS.map((c) => (

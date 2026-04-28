@@ -74,10 +74,6 @@ export default function ProblemasPage() {
   const chapters = Array.from(new Set(HALLIDAY_PROBLEMS.map((p) => p.chapterId))).sort();
 
   async function solve(p: HallidayProblem) {
-    if (!state.geminiApiKey) {
-      setErrors((e) => ({ ...e, [p.id]: "NO_KEY" }));
-      return;
-    }
     setSolvingId(p.id);
     setErrors((e) => ({ ...e, [p.id]: "" }));
     try {
@@ -85,7 +81,7 @@ export default function ProblemasPage() {
       const messages: GeminiMessage[] = [
         { role: "user", parts: [{ text: `${header}\n\n${p.text}\n\nResolva passo a passo seguindo a estrutura Dados → Fórmula → Substituição → Resultado.` }] },
       ];
-      const reply = await callGemini({ apiKey: state.geminiApiKey, system: TUTOR_SYSTEM, messages });
+      const reply = await callGemini({ system: TUTOR_SYSTEM, messages });
       setSolutions((s) => ({ ...s, [p.id]: reply }));
     } catch (e) {
       const msg =

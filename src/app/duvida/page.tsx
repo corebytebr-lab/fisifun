@@ -18,7 +18,7 @@ interface ChatMsg {
 
 export default function DuvidaPage() {
   const mounted = useHydrated();
-  const apiKey = useGame((s) => s.geminiApiKey);
+
   const [input, setInput] = useState("");
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -34,10 +34,6 @@ export default function DuvidaPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function send() {
-    if (!apiKey) {
-      setError("NO_KEY");
-      return;
-    }
     if (!input.trim() && !image) return;
     setError(null);
     setLoading(true);
@@ -59,7 +55,7 @@ export default function DuvidaPage() {
       }
       messages.push({ role: "user", parts });
 
-      const reply = await callGemini({ apiKey, system: TUTOR_SYSTEM, messages });
+      const reply = await callGemini({ system: TUTOR_SYSTEM, messages });
       setHistory([...nextHistory, { role: "model", text: reply }]);
       setImage(null);
       setImagePreview(null);
@@ -101,18 +97,7 @@ export default function DuvidaPage() {
         </p>
       </header>
 
-      {!apiKey && (
-        <Card className="border-amber-500/40 bg-amber-500/5">
-          <CardTitle>⚙️ Configure sua chave (grátis)</CardTitle>
-          <CardSubtitle>
-            Pegue em{" "}
-            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="font-semibold text-indigo-600 underline">
-              aistudio.google.com/apikey
-            </a>{" "}
-            (Google login, sem cartão). Depois cole em <Link href="/configuracoes" className="font-semibold underline">Configurações → Tutor IA</Link>. A chave fica só no seu navegador.
-          </CardSubtitle>
-        </Card>
-      )}
+      {/* AI key is server-side; no per-user setup needed. */}
 
       {history.length === 0 && (
         <Card>
@@ -195,7 +180,7 @@ export default function DuvidaPage() {
           />
           <Button
             onClick={send}
-            disabled={loading || (!input.trim() && !image) || !apiKey}
+            disabled={loading || (!input.trim() && !image)}
             size="md"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}

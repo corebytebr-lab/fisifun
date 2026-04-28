@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Home,
@@ -24,6 +24,7 @@ import {
 import { useGame } from "@/lib/store";
 import { SUBJECTS } from "@/lib/types";
 import { PomodoroFab } from "./Pomodoro";
+import { CalcFab } from "./CalcFab";
 import { useAuth } from "@/lib/useAuth";
 import { isFirebaseConfigured, signOut as fbSignOut } from "@/lib/firebase";
 
@@ -31,7 +32,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const theme = useGame((s) => s.theme);
   const focusMode = useGame((s) => s.focusMode);
+  const hasChosenSubject = useGame((s) => s.hasChosenSubject);
   const regen = useGame((s) => s.regenHeartsIfDue);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
@@ -39,6 +43,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const id = setInterval(regen, 60_000);
     return () => clearInterval(id);
   }, [regen]);
+
+  // Onboarding: redireciona para /escolher na primeira visita
+  useEffect(() => {
+    if (!mounted) return;
+    if (!hasChosenSubject && pathname === "/") {
+      router.replace("/escolher");
+    }
+  }, [mounted, hasChosenSubject, pathname, router]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -56,12 +68,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     document.body.classList.toggle("focus-mode", focusMode);
   }, [focusMode, mounted]);
 
+  // Bare layout (no sidebar/nav) for fullscreen pages like login and quadro
+  if (pathname === "/login" || pathname === "/quadro" || pathname.startsWith("/quadro/")) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col md:flex-row">
       <Sidebar />
       <main className="flex-1 pb-20 md:pb-6">{children}</main>
       <BottomNav />
       <PomodoroFab />
+      <CalcFab />
     </div>
   );
 }
@@ -190,27 +208,18 @@ function BottomNav() {
 
 function SidebarSubjectBadge() {
   const cur = useGame((s) => s.currentSubject);
-  const setCur = useGame((s) => s.setCurrentSubject);
+  const info = SUBJECTS.find((s) => s.id === cur) ?? SUBJECTS[0];
   return (
-    <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-2">
-      <div className="px-1 text-[10px] font-bold uppercase text-[var(--muted)]">Matéria</div>
-      <div className="mt-1 flex flex-col gap-1">
-        {SUBJECTS.map((s) => {
-          const active = cur === s.id;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setCur(s.id)}
-              className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition ${active ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300" : "hover:bg-[var(--bg-elev)] text-[var(--muted)]"}`}
-            >
-              <span className="text-base">{s.emoji}</span>
-              <span className={active ? "font-bold" : ""}>{s.label}</span>
-            </button>
-          );
-        })}
+    <Link href="/escolher" className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-2 hover:bg-[var(--bg-elev)] transition">
+      <div className="flex items-center gap-2 px-1">
+        <span className="text-2xl">{info.emoji}</span>
+        <div>
+          <div className="text-[9px] font-bold uppercase text-[var(--muted)]">Matéria</div>
+          <div className="text-sm font-bold leading-tight">{info.label}</div>
+        </div>
       </div>
-    </div>
+      <span className="text-[10px] font-semibold text-indigo-600">trocar →</span>
+    </Link>
   );
 }
 

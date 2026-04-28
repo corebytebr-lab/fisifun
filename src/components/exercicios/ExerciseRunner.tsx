@@ -8,7 +8,6 @@ import { Card } from "../ui/Card";
 import { RichText, InlineMath, normalizeText } from "@/lib/format";
 import { CheckCircle2, XCircle, Lightbulb, Sparkles, Loader2 } from "lucide-react";
 import { callGemini, GeminiError, TUTOR_SYSTEM } from "@/lib/gemini";
-import { useGame } from "@/lib/store";
 
 export type ExerciseResult = { correct: boolean };
 
@@ -79,22 +78,16 @@ function Feedback({
   exercise: Exercise;
   onNext: () => void;
 }) {
-  const apiKey = useGame((s) => s.geminiApiKey);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiText, setAiText] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
   async function askAi() {
-    if (!apiKey) {
-      setAiError("NO_KEY");
-      return;
-    }
     setAiLoading(true);
     setAiError(null);
     try {
       const contextual = buildExerciseContext(exercise);
       const text = await callGemini({
-        apiKey,
         system: TUTOR_SYSTEM,
         messages: [
           {

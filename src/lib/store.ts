@@ -88,6 +88,49 @@ export interface PersistedState {
   // Matéria atualmente selecionada (Física vs Química). Filtros de capítulos
   // e ações de página (trilha, problemas, professor, flashcards) usam isso.
   currentSubject: Subject;
+
+  // Onboarding: se o usuário ainda não escolheu matéria pela tela /escolher.
+  hasChosenSubject?: boolean;
+
+  // === Telemetria pra conquistas ===
+  // Status de problemas do livro (alias de hallidayProgress, com chaves "right" / "wrong")
+  hallidayStatus?: Record<string, "right" | "wrong">;
+  professorSessions?: number;
+  bossDefeated?: number;
+  toolsUsed?: string[];
+  gameStats?: Record<string, { plays: number; bestScore?: number }>;
+  subjectsStudiedByDay?: Record<string, Subject[]>; // YYYY-MM-DD → matérias estudadas
+  flags?: {
+    studiedAtNight?: boolean;
+    studiedEarlyMorning?: boolean;
+    studiedLateNight?: boolean;
+    studiedSunday?: boolean;
+    studiedNewYear?: boolean;
+    studiedChristmas?: boolean;
+    comeback7d?: boolean;
+    streakCorrect?: number;
+    professorRuns?: number;
+    professorBest?: number;
+    gamesPlayed?: number;
+    distinctGamesPlayed?: number;
+    bossWins?: number;
+    srsReviews?: number;
+    srsClearedFullDay?: boolean;
+    wrongRedone?: number;
+    usedPeriodicTable?: boolean;
+    usedBalancer?: boolean;
+    usedVetorCalc?: boolean;
+    usedGAPlotter?: boolean;
+    usedDerivCalc?: boolean;
+    usedRiemann?: boolean;
+    usedLimitViewer?: boolean;
+    distinctToolsUsed?: number;
+    aiQueries?: number;
+    aiPhotoQueries?: number;
+    referrals?: number;
+    dueloWins?: number;
+    areasVisited?: number;
+  };
 }
 
 export interface GameState extends PersistedState {
@@ -120,6 +163,11 @@ export interface GameState extends PersistedState {
   setPomodoro: (minutes: number, breakMin: number) => void;
   markHalliday: (problemId: string, result: "correct" | "wrong") => void;
   setCurrentSubject: (s: Subject) => void;
+  setHasChosenSubject: (v: boolean) => void;
+  recordToolUse: (tool: string) => void;
+  recordProfessorSession: () => void;
+  recordBossDefeated: () => void;
+  recordGamePlay: (gameId: string, score?: number) => void;
 }
 
 const todayKey = (d = new Date()) => {
@@ -152,7 +200,7 @@ export const xpForLevel = (level: number) => {
   return { total, nextNeed: need };
 };
 
-const HEART_REGEN_MS = 25 * 60 * 1000; // 25 min per heart
+const HEART_REGEN_MS = 20 * 60 * 1000; // 20 min per heart
 
 const initial: PersistedState = {
   username: "Estudante",
@@ -161,8 +209,8 @@ const initial: PersistedState = {
   xp: 0,
   level: 1,
   coins: 0,
-  hearts: 5,
-  maxHearts: 5,
+  hearts: 20,
+  maxHearts: 20,
   lastHeartRegenAt: Date.now(),
   streak: 0,
   longestStreak: 0,
@@ -173,7 +221,7 @@ const initial: PersistedState = {
   soundEnabled: true,
   reminderTime: null,
   focusMode: false,
-  infiniteHearts: true,
+  infiniteHearts: false,
   geminiApiKey: "",
 
   lessonProgress: {},
@@ -437,14 +485,47 @@ export const useGame = create<GameState>()(
         }
       },
 
-      setCurrentSubject: (s) => set({ currentSubject: s }),
+      setCurrentSubject: (s) => {
+        const today = todayKey();
+        const cur = get();
+        const studied = cur.subjectsStudiedByDay ?? {};
+        const set0 = new Set([...(studied[today] ?? []), s]);
+        set({
+          currentSubject: s,
+          subjectsStudiedByDay: { ...studied, [today]: Array.from(set0) },
+        });
+      },
+      setHasChosenSubject: (v) => set({ hasChosenSubject: v }),
+      recordToolUse: (tool) => {
+        const cur = get().toolsUsed ?? [];
+        if (!cur.includes(tool)) set({ toolsUsed: [...cur, tool] });
+      },
+      recordProfessorSession: () => set({ professorSessions: (get().professorSessions ?? 0) + 1 }),
+      recordBossDefeated: () => set({ bossDefeated: (get().bossDefeated ?? 0) + 1 }),
+      recordGamePlay: (gameId, score) => {
+        const stats = get().gameStats ?? {};
+        const prev = stats[gameId] ?? { plays: 0 };
+        const next = {
+          plays: prev.plays + 1,
+          bestScore: score !== undefined ? Math.max(prev.bestScore ?? 0, score) : prev.bestScore,
+        };
+        set({ gameStats: { ...stats, [gameId]: next } });
+      },
     }),
     {
       name: "fisifun-state",
-      version: 6,
+      version: 7,
       migrate: (persisted: unknown, version: number) => {
         let s = (persisted as Partial<PersistedState>) ?? {};
-        if (version < 2) s = { ...s, infiniteHearts: true };
+        if (version < 2) s = { ...s, infiniteHearts: false };
+        if (version < 7) {
+          s = {
+            ...s,
+            infiniteHearts: false,
+            maxHearts: 20,
+            hearts: typeof s.hearts === "number" ? Math.min(s.hearts, 20) : 20,
+          };
+        }
         if (version < 3) s = { ...s, geminiApiKey: s.geminiApiKey ?? "" };
         if (version < 4) {
           s = {

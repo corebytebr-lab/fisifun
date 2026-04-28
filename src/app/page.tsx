@@ -27,6 +27,9 @@ import {
   Gamepad2,
   ClipboardList,
   Presentation,
+  BookX,
+  PencilRuler,
+  Search,
 } from "lucide-react";
 import { chapterCompleted, ALL_CHAPTER_IDS } from "@/lib/achievements";
 import { useHydrated } from "@/lib/useHydrated";
@@ -255,6 +258,9 @@ export default function HomePage() {
         <QuickMode href="/revisao" icon={<RefreshCw />} label="Revisar erros" sub="Só onde errei" color="bg-amber-500/10 text-amber-600" />
         <QuickMode href="/prova" icon={<GraduationCap />} label="Modo prova" sub="Simulado" color="bg-rose-500/10 text-rose-600" />
         <QuickMode href="/formulas" icon={<BookOpen />} label="Fórmulas" sub="Biblioteca" color="bg-emerald-500/10 text-emerald-600" />
+        <QuickMode href="/erros" icon={<BookX />} label="Caderno de erros" sub="Tudo que errei" color="bg-rose-500/10 text-rose-600" />
+        <QuickMode href="/glossario" icon={<Search />} label="Glossário" sub="Busca rápida" color="bg-cyan-500/10 text-cyan-600" />
+        <QuickMode href="/quadro" icon={<PencilRuler />} label="Quadro Branco" sub="Lousa zen" color="bg-violet-500/10 text-violet-600" />
       </div>
 
       <div>

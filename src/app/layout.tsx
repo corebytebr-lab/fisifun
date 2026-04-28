@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { StateSync } from "@/components/StateSync";
 
 export const metadata: Metadata = {
   title: "FisiFun — Física 1 estilo Duolingo",
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body className="min-h-screen">
         <AppShell>{children}</AppShell>
         <ServiceWorkerRegister />
+        <StateSync />
       </body>
     </html>
   );
