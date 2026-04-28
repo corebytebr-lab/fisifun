@@ -6,8 +6,10 @@ const PUBLIC_PREFIXES = ["/_next", "/favicon", "/icons", "/screenshots", "/manif
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  // Normalize trailing slash so `/login/` matches `/login`
+  const norm = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 
-  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
+  if (PUBLIC_PATHS.has(norm)) return NextResponse.next();
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return NextResponse.next();
   if (pathname.includes(".") && !pathname.endsWith("/")) return NextResponse.next();
 
@@ -22,6 +24,11 @@ export async function proxy(req: NextRequest) {
     url.pathname = "/login";
     url.searchParams.set("from", pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Already logged in users hitting /login go to home
+  if (norm === "/login") {
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
