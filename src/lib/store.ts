@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { SrsItem } from "./types";
+import type { SrsItem, Subject } from "./types";
 
 export interface LessonProgress {
   completed: boolean;
@@ -84,6 +84,10 @@ export interface PersistedState {
 
   // Problemas do Halliday: 'correct' | 'wrong' | ausente (nunca tentou)
   hallidayProgress: Record<string, "correct" | "wrong">;
+
+  // Matéria atualmente selecionada (Física vs Química). Filtros de capítulos
+  // e ações de página (trilha, problemas, professor, flashcards) usam isso.
+  currentSubject: Subject;
 }
 
 export interface GameState extends PersistedState {
@@ -115,6 +119,7 @@ export interface GameState extends PersistedState {
   setStudyPlan: (plan: PersistedState["studyPlan"]) => void;
   setPomodoro: (minutes: number, breakMin: number) => void;
   markHalliday: (problemId: string, result: "correct" | "wrong") => void;
+  setCurrentSubject: (s: Subject) => void;
 }
 
 const todayKey = (d = new Date()) => {
@@ -151,7 +156,7 @@ const HEART_REGEN_MS = 25 * 60 * 1000; // 25 min per heart
 
 const initial: PersistedState = {
   username: "Estudante",
-  avatar: "🧑‍🚀",
+  avatar: "🦊",
 
   xp: 0,
   level: 1,
@@ -189,6 +194,7 @@ const initial: PersistedState = {
   pomodoroMinutes: 25,
   pomodoroBreak: 5,
   hallidayProgress: {},
+  currentSubject: "fisica",
 };
 
 const upsertDaily = (log: DailyLog[], patch: Partial<DailyLog>): DailyLog[] => {
@@ -430,10 +436,12 @@ export const useGame = create<GameState>()(
           // We just flag the progress; awardXp handled by caller.
         }
       },
+
+      setCurrentSubject: (s) => set({ currentSubject: s }),
     }),
     {
       name: "fisifun-state",
-      version: 5,
+      version: 6,
       migrate: (persisted: unknown, version: number) => {
         let s = (persisted as Partial<PersistedState>) ?? {};
         if (version < 2) s = { ...s, infiniteHearts: true };
@@ -450,6 +458,9 @@ export const useGame = create<GameState>()(
         }
         if (version < 5) {
           s = { ...s, hallidayProgress: s.hallidayProgress ?? {} };
+        }
+        if (version < 6) {
+          s = { ...s, currentSubject: s.currentSubject ?? "fisica" };
         }
         return s as PersistedState;
       },

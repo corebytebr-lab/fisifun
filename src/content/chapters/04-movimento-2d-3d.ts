@@ -6,7 +6,7 @@ export const cap04 = chapter({
   title: "Movimento em 2D e 3D",
   subtitle: "Balística, movimento circular e movimento relativo",
   color: "#eab308",
-  emoji: "🏹",
+  emoji: "🎯",
   objectives: [
     "Analisar movimentos em duas dimensões (balística).",
     "Compreender movimento circular uniforme.",

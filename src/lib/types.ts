@@ -150,6 +150,8 @@ export interface Lesson {
   timeLimitSeconds?: number;
 }
 
+export type Subject = "fisica" | "quimica" | "ga" | "calculo";
+
 export interface Chapter {
   id: string;
   number: number;
@@ -157,6 +159,8 @@ export interface Chapter {
   subtitle: string;
   color: string; // tailwind-friendly hex
   emoji: string;
+  /** Optional subject tag. Missing => "fisica" (legacy default). */
+  subject?: Subject;
   objectives: string[];
   keyConcepts: string[];
   commonMistakes: string[];
@@ -164,6 +168,20 @@ export interface Chapter {
   formulas: Formula[];
   lessons: Lesson[];
 }
+
+export interface SubjectInfo {
+  id: Subject;
+  label: string;
+  emoji: string;
+  description: string;
+}
+
+export const SUBJECTS: SubjectInfo[] = [
+  { id: "fisica", label: "Física", emoji: "🪐", description: "Mecânica clássica (Halliday vol. 1)" },
+  { id: "quimica", label: "Química Geral", emoji: "🧪", description: "Brown / LeMay — A Ciência Central" },
+  { id: "ga", label: "Geometria Analítica", emoji: "📐", description: "Vetores, retas, planos, cônicas (Winterle / Reis & Silva)" },
+  { id: "calculo", label: "Cálculo 1", emoji: "∫", description: "Limites, derivadas, integrais (Stewart vol. 1)" },
+];
 
 export interface Achievement {
   id: string;

@@ -537,7 +537,7 @@ export const BOSSES: Boss[] = [
   {
     chapterId: "04-movimento-2d-3d",
     name: "Balistix, o Projétil",
-    emoji: "🏹",
+    emoji: "🎯",
     hp: 110,
     questions: [
       { prompt: "Em lançamento oblíquo, a aceleração vertical vale...", options: ["0", "g para cima", "−g (para baixo)", "v₀y"], correct: 2, damage: 25, explanation: "Apenas gravidade." },
@@ -563,7 +563,7 @@ export const BOSSES: Boss[] = [
   {
     chapterId: "06-forca-ii",
     name: "Friccio, o Pegajoso",
-    emoji: "🛞",
+    emoji: "🚗",
     hp: 130,
     questions: [
       { prompt: "μ_s = 0,4, N = 50 N. Atrito estático máximo vale...", options: ["10", "20", "40", "50"], correct: 1, damage: 25, explanation: "f_s(max) = μ_s·N." },
@@ -602,7 +602,7 @@ export const BOSSES: Boss[] = [
   {
     chapterId: "09-centro-massa-momento",
     name: "Momentus, o Impulsor",
-    emoji: "💥",
+    emoji: "🎱",
     hp: 140,
     questions: [
       { prompt: "m=3 kg; v=4 m/s. p =?", options: ["3", "7", "12", "16"], correct: 2, damage: 25, explanation: "p = m·v." },
@@ -628,7 +628,7 @@ export const BOSSES: Boss[] = [
   {
     chapterId: "11-rolamento-torque",
     name: "Giromax, o Angular",
-    emoji: "🎡",
+    emoji: "💡",
     hp: 150,
     questions: [
       { prompt: "Rolamento sem deslizar: v do centro × raio × ω:", options: ["v = r·ω", "v = ω/r", "v = r/ω", "v = r + ω"], correct: 0, damage: 25, explanation: "Condição de rolagem pura." },

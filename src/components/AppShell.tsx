@@ -22,6 +22,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useGame } from "@/lib/store";
+import { SUBJECTS } from "@/lib/types";
 import { PomodoroFab } from "./Pomodoro";
 import { useAuth } from "@/lib/useAuth";
 import { isFirebaseConfigured, signOut as fbSignOut } from "@/lib/firebase";
@@ -84,12 +85,13 @@ function Sidebar() {
   return (
     <aside className="fisifun-chrome hidden w-56 shrink-0 border-r border-[var(--border)] bg-[var(--bg-elev)] md:block">
       <div className="sticky top-0 p-4">
-        <Link href="/" className="mb-6 flex items-center gap-2">
+        <Link href="/" className="mb-3 flex items-center gap-2">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-xl shadow-md">
             ⚛️
           </span>
           <span className="text-lg font-extrabold tracking-tight">FisiFun</span>
         </Link>
+        <SidebarSubjectBadge />
         <nav className="flex flex-col gap-1">
           {NAV.map((item) => {
             const Icon = item.icon;
@@ -183,6 +185,32 @@ function BottomNav() {
         );
       })}
     </nav>
+  );
+}
+
+function SidebarSubjectBadge() {
+  const cur = useGame((s) => s.currentSubject);
+  const setCur = useGame((s) => s.setCurrentSubject);
+  return (
+    <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-2">
+      <div className="px-1 text-[10px] font-bold uppercase text-[var(--muted)]">Matéria</div>
+      <div className="mt-1 flex flex-col gap-1">
+        {SUBJECTS.map((s) => {
+          const active = cur === s.id;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setCur(s.id)}
+              className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition ${active ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300" : "hover:bg-[var(--bg-elev)] text-[var(--muted)]"}`}
+            >
+              <span className="text-base">{s.emoji}</span>
+              <span className={active ? "font-bold" : ""}>{s.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

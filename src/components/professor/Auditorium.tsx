@@ -308,7 +308,9 @@ function createAuditorium(
 
     const accessory = accessoryHints[i] ?? randomAccessory(i);
     const lumer = buildLumer(accessory);
-    lumer.root.position.set(x, tierY + 0.55, z);
+    // Body bottom (radius ~0.61 vertical) must rest on the seat top
+    // (chair seat top sits at chair.y + 0.47), so root.y = tierY + 0.47 + 0.61.
+    lumer.root.position.set(x, tierY + 1.08, z);
     lumer.root.lookAt(0, tierY + 1.4, -2.6);
     // Per-lumer randomness for natural animation.
     lumer.seed = (i * 137.7) % 1000;
@@ -318,17 +320,26 @@ function createAuditorium(
     lumerObjs.push(lumer);
   }
 
-  // Tier risers (visible "stairs" behind each row to suggest stadium seating).
-  for (let r = 1; r < rows; r++) {
-    const riserY = r * tierStep - tierStep / 2;
-    const riserZ = firstRowZ + r * rowDepth - rowDepth / 2;
-    const riser = new THREE.Mesh(
-      new THREE.BoxGeometry(cols * colSpacing + 2, tierStep, rowDepth),
-      new THREE.MeshStandardMaterial({ color: 0x271a4a, roughness: 0.85 })
+  // Tier platforms — one solid platform per row at its tier height. Adjacent
+  // platforms touch (no gap, no overlap) and the visible front face of each
+  // platform acts as the riser/step. Chairs rest on top of the platform of
+  // their row, so chair feet never sink into the floor.
+  const platformMat = new THREE.MeshStandardMaterial({
+    color: 0x271a4a,
+    roughness: 0.85,
+  });
+  for (let r = 0; r < rows; r++) {
+    const platformTopY = r * tierStep;
+    const platformZ = firstRowZ + r * rowDepth;
+    const platformDepth = rowDepth;
+    const platformHeight = 0.4 + r * tierStep; // taller for back rows so face stays above floor
+    const platform = new THREE.Mesh(
+      new THREE.BoxGeometry(cols * colSpacing + 2, platformHeight, platformDepth),
+      platformMat
     );
-    riser.position.set(0, riserY, riserZ);
-    riser.receiveShadow = true;
-    scene.add(riser);
+    platform.position.set(0, platformTopY - platformHeight / 2, platformZ);
+    platform.receiveShadow = true;
+    scene.add(platform);
   }
 
   // State
@@ -641,24 +652,19 @@ function buildLumer(accessory: LumerState["accessory"] = "none"): LumerObj {
   nose.position.set(0, -0.02, 0.34);
   headPivot.add(nose);
 
-  // Mouth — curved smile using a partial torus (lower half semicircle).
-  // Grouped so we can scale Y for "talking" animation without deforming the geometry center.
+  // Mouth — clean curved smile (just a thin partial torus, no inner fill).
+  // Grouped so we can scale Y for "talking" animation without deforming the
+  // geometry center.
   const mouth = new THREE.Group();
   const smile = new THREE.Mesh(
-    new THREE.TorusGeometry(0.055, 0.011, 10, 18, Math.PI),
+    new THREE.TorusGeometry(0.05, 0.008, 12, 22, Math.PI),
     lipsMat,
   );
-  smile.rotation.z = Math.PI; // flip so arc faces down like a :) smile
+  // Default torus arc opens upward (cup); rotate Z by PI so it cups downward
+  // forming a :) shape, and rotate slightly toward camera so it sits on the face.
+  smile.rotation.z = Math.PI;
   mouth.add(smile);
-  // Tiny dark fill inside the smile for subtle mouth interior.
-  const mouthFill = new THREE.Mesh(
-    new THREE.SphereGeometry(0.028, 12, 10),
-    new THREE.MeshStandardMaterial({ color: 0x3a1a1e, roughness: 0.6 }),
-  );
-  mouthFill.scale.set(1.2, 0.45, 0.35);
-  mouthFill.position.set(0, -0.01, 0);
-  mouth.add(mouthFill);
-  mouth.position.set(0, -0.09, 0.33);
+  mouth.position.set(0, -0.08, 0.33);
   headPivot.add(mouth);
 
   // Cheeks (subtle blush).
@@ -712,15 +718,20 @@ function buildLumer(accessory: LumerState["accessory"] = "none"): LumerObj {
   rightArmPivot.add(rightHand);
   root.add(rightArmPivot);
 
-  // Shoes (dark ovoids at base).
-  const shoeGeom = new THREE.SphereGeometry(0.13, 12, 10);
+  // Shoes (dark ovoids dangling in front of chair seat). Lumers are seated, so
+  // the body ovoid rests on the seat top and feet hang forward+down toward
+  // the platform. Place feet just above the platform and forward of the seat
+  // edge so they peek out below the chair.
+  const shoeGeom = new THREE.SphereGeometry(0.11, 12, 10);
   const footL = new THREE.Mesh(shoeGeom, shoeMat);
-  footL.scale.set(1.1, 0.5, 1.7);
-  footL.position.set(-0.18, -0.6, 0.16);
+  footL.scale.set(1.1, 0.55, 1.7);
+  // Local +z points toward the camera (after lumer.lookAt(camera-side target)),
+  // so positive z places feet in front of the chair.
+  footL.position.set(-0.16, -1.0, 0.55);
   root.add(footL);
   const footR = new THREE.Mesh(shoeGeom, shoeMat);
-  footR.scale.set(1.1, 0.5, 1.7);
-  footR.position.set(0.18, -0.6, 0.16);
+  footR.scale.set(1.1, 0.55, 1.7);
+  footR.position.set(0.16, -1.0, 0.55);
   root.add(footR);
 
   // Accessory variations
