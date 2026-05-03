@@ -60,6 +60,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       data.subjectsAllowed = [];
     }
   }
+  if (typeof body.extendDays === "number" && body.extendDays > 0) {
+    const current = await prisma.user.findUnique({ where: { id }, select: { planUntil: true } });
+    const base = current?.planUntil && current.planUntil.getTime() > Date.now() ? current.planUntil : new Date();
+    data.planUntil = new Date(base.getTime() + body.extendDays * 86400000);
+  }
   const u = await prisma.user.update({ where: { id }, data });
   await prisma.auditLog.create({ data: { actorId: s.uid, action: "user.update", target: id, meta: data as object } });
   return NextResponse.json({

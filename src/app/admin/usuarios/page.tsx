@@ -10,10 +10,32 @@ interface AdminUser {
   role: "ADMIN" | "TEACHER" | "STUDENT";
   active: boolean;
   classGroup: string | null;
+  plan?: string;
+  planUntil?: string | null;
+  subjectsAllowed?: string[];
   createdAt: string;
   lastLoginAt: string | null;
   state: { level: number; xp: number; streak: number; currentSubject: string } | null;
 }
+
+const PLAN_OPTIONS: { value: string; label: string; needSubject?: boolean; days: number | null }[] = [
+  { value: "TRIAL", label: "Trial 3 dias (grátis)", days: 3 },
+  { value: "ALUNO", label: "Aluno R$59,90/m (1 matéria)", needSubject: true, days: 30 },
+  { value: "TOTAL", label: "Total R$99,90/m (4 matérias)", days: 30 },
+  { value: "PREMIUM", label: "Premium R$149,90/m", days: 30 },
+  { value: "ANUAL", label: "Anual R$799 (1 ano)", days: 365 },
+  { value: "TRIENAL", label: "3 Anos R$1.997", days: 365 * 3 },
+  { value: "FAMILIA", label: "Família R$199/m", days: 30 },
+  { value: "ESCOLA", label: "Escola B2B", days: 30 },
+  { value: "BLOCKED", label: "Bloqueado", days: null },
+];
+
+const SUBJECT_OPTS = [
+  { value: "fisica", label: "Física" },
+  { value: "quimica", label: "Química" },
+  { value: "ga", label: "Geometria Analítica" },
+  { value: "calculo", label: "Cálculo 1" },
+];
 
 export default function UsuariosAdmin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -126,13 +148,31 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
 }
 
 function NewUserModal({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "STUDENT", classGroup: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "STUDENT",
+    classGroup: "",
+    plan: "TRIAL",
+    subject: "fisica",
+  });
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const planInfo = PLAN_OPTIONS.find((p) => p.value === form.plan)!;
 
   const submit = async () => {
     setBusy(true); setErr(null);
-    const r = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    const payload: Record<string, unknown> = {
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      role: form.role,
+      classGroup: form.classGroup,
+      plan: form.plan,
+    };
+    if (planInfo.needSubject) payload.subjectsAllowed = [form.subject];
+    const r = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     setBusy(false);
     if (!r.ok) {
       const d = await r.json().catch(() => ({}));
@@ -172,6 +212,37 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
           </select>
         </div>
         <Input label="Turma (opcional)" value={form.classGroup} onChange={(v) => setForm({ ...form, classGroup: v })} />
+        <div>
+          <label className="mb-1 block text-xs font-semibold">Plano</label>
+          <select
+            value={form.plan}
+            onChange={(e) => setForm({ ...form, plan: e.target.value })}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+          >
+            {PLAN_OPTIONS.map((p) => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </select>
+          {planInfo.days != null && (
+            <div className="mt-1 text-[10px] text-[var(--muted)]">
+              Expira em {planInfo.days} dias. Você pode mudar/bloquear depois pela ficha do aluno.
+            </div>
+          )}
+        </div>
+        {planInfo.needSubject && (
+          <div>
+            <label className="mb-1 block text-xs font-semibold">Matéria liberada (plano Aluno só libera 1)</label>
+            <select
+              value={form.subject}
+              onChange={(e) => setForm({ ...form, subject: e.target.value })}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+            >
+              {SUBJECT_OPTS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
         {err && <div className="rounded-xl bg-rose-100 px-3 py-2 text-xs text-rose-700">{err}</div>}
         <button onClick={submit} disabled={busy} className="mt-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 py-2 font-bold text-white disabled:opacity-50">
           {busy ? "Criando..." : "Criar"}
@@ -182,13 +253,31 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
 }
 
 function EditUserModal({ user, onClose }: { user: AdminUser; onClose: () => void }) {
-  const [form, setForm] = useState({ name: user.name, role: user.role, active: user.active, classGroup: user.classGroup ?? "", password: "" });
+  const [form, setForm] = useState({
+    name: user.name,
+    role: user.role,
+    active: user.active,
+    classGroup: user.classGroup ?? "",
+    password: "",
+    plan: user.plan ?? "TRIAL",
+    subject: user.subjectsAllowed?.[0] ?? "fisica",
+    extendDays: 0,
+  });
   const [busy, setBusy] = useState(false);
+  const planInfo = PLAN_OPTIONS.find((p) => p.value === form.plan)!;
 
   const save = async () => {
     setBusy(true);
-    const body: Record<string, unknown> = { name: form.name, role: form.role, active: form.active, classGroup: form.classGroup };
+    const body: Record<string, unknown> = {
+      name: form.name,
+      role: form.role,
+      active: form.active,
+      classGroup: form.classGroup,
+      plan: form.plan,
+    };
     if (form.password) body.password = form.password;
+    if (planInfo.needSubject) body.subjectsAllowed = [form.subject];
+    if (form.extendDays > 0) body.extendDays = form.extendDays;
     const r = await fetch(`/api/admin/users/${user.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setBusy(false);
     if (r.ok) onClose();
@@ -221,6 +310,48 @@ function EditUserModal({ user, onClose }: { user: AdminUser; onClose: () => void
           Conta ativa
         </label>
         <Input label="Nova senha (opcional)" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
+        <div>
+          <label className="mb-1 block text-xs font-semibold">Plano atual</label>
+          <select
+            value={form.plan}
+            onChange={(e) => setForm({ ...form, plan: e.target.value })}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+          >
+            {PLAN_OPTIONS.map((p) => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </select>
+          {user.planUntil && (
+            <div className="mt-1 text-[10px] text-[var(--muted)]">
+              Expira em {new Date(user.planUntil).toLocaleDateString("pt-BR")}
+            </div>
+          )}
+        </div>
+        {planInfo.needSubject && (
+          <div>
+            <label className="mb-1 block text-xs font-semibold">Matéria liberada</label>
+            <select
+              value={form.subject}
+              onChange={(e) => setForm({ ...form, subject: e.target.value })}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+            >
+              {SUBJECT_OPTS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="mb-1 block text-xs font-semibold">Estender plano (dias)</label>
+          <input
+            type="number"
+            min={0}
+            value={form.extendDays}
+            onChange={(e) => setForm({ ...form, extendDays: Number(e.target.value) || 0 })}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
+          />
+          <div className="mt-1 text-[10px] text-[var(--muted)]">Ex: 30 estende o vencimento em 30 dias.</div>
+        </div>
         <div className="mt-2 flex gap-2">
           <button onClick={save} disabled={busy} className="flex-1 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 py-2 font-bold text-white disabled:opacity-50">Salvar</button>
           <button onClick={del} disabled={busy} className="rounded-xl border border-rose-500 bg-rose-500/10 px-3 py-2 text-sm font-bold text-rose-600">🗑️</button>
