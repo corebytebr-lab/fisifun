@@ -97,12 +97,14 @@ export function findLesson(chapterId: string, lessonId: string): Lesson | undefi
   return c?.lessons.find((l) => l.id === lessonId);
 }
 
-export function allExercises(): { chapterId: string; lessonId: string; exercise: Exercise }[] {
-  const out: { chapterId: string; lessonId: string; exercise: Exercise }[] = [];
-  for (const c of CHAPTERS) {
+export function allExercises(subject?: Subject): { chapterId: string; lessonId: string; exercise: Exercise; subject: Subject }[] {
+  const out: { chapterId: string; lessonId: string; exercise: Exercise; subject: Subject }[] = [];
+  const list = subject ? chaptersBySubject(subject) : CHAPTERS;
+  for (const c of list) {
+    const subj = (c.subject ?? "fisica") as Subject;
     for (const l of c.lessons) {
       for (const e of l.exercises ?? []) {
-        out.push({ chapterId: c.id, lessonId: l.id, exercise: e });
+        out.push({ chapterId: c.id, lessonId: l.id, exercise: e, subject: subj });
       }
     }
   }

@@ -40,6 +40,24 @@ export async function proxy(req: NextRequest) {
     }
   }
 
+  // Plan expiration: if planUntil < now and not ADMIN/TEACHER, force renew
+  if (session.role === "STUDENT" && session.planUntil) {
+    const until = Date.parse(session.planUntil);
+    if (!Number.isNaN(until) && until < Date.now()) {
+      // Allow auth/me + logout so the client can still detect & sign out
+      if (pathname.startsWith("/api/auth/")) return NextResponse.next();
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "plan_expired" }, { status: 402 });
+      }
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("renew", "1");
+      const res = NextResponse.redirect(url);
+      res.cookies.delete(SESSION_COOKIE);
+      return res;
+    }
+  }
+
   return NextResponse.next();
 }
 

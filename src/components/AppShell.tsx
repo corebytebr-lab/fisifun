@@ -20,6 +20,8 @@ import {
   Presentation,
   LogIn,
   LogOut,
+  Settings,
+  Shield,
 } from "lucide-react";
 import { useGame } from "@/lib/store";
 import { SUBJECTS } from "@/lib/types";
@@ -27,6 +29,9 @@ import { PomodoroFab } from "./Pomodoro";
 import { CalcFab } from "./CalcFab";
 import { useAuth } from "@/lib/useAuth";
 import { isFirebaseConfigured, signOut as fbSignOut } from "@/lib/firebase";
+import { useMe } from "@/lib/useMe";
+import { NotificationBell } from "./NotificationBell";
+import { MobileMenu } from "./MobileMenu";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -68,19 +73,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     document.body.classList.toggle("focus-mode", focusMode);
   }, [focusMode, mounted]);
 
-  // Bare layout (no sidebar/nav) for fullscreen pages like login and quadro
-  if (pathname === "/login" || pathname === "/quadro" || pathname.startsWith("/quadro/")) {
-    return <>{children}</>;
+  // Bare layout (no sidebar/nav, no FABs) for fullscreen pages like login and quadro
+  const normalized = pathname.replace(/\/$/, "") || "/";
+  if (normalized === "/login" || normalized === "/quadro" || normalized.startsWith("/quadro/")) {
+    return <div className="min-h-screen">{children}</div>;
   }
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col md:flex-row">
       <Sidebar />
-      <main className="flex-1 pb-20 md:pb-6">{children}</main>
+      <div className="flex-1 pb-20 md:pb-6">
+        <MobileTopBar />
+        <main>{children}</main>
+      </div>
       <BottomNav />
       <PomodoroFab />
       <CalcFab />
     </div>
+  );
+}
+
+function MobileTopBar() {
+  return (
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)]/85 px-3 py-2 backdrop-blur md:hidden">
+      <Link href="/" className="flex items-center gap-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-base shadow">⚛️</span>
+        <span className="text-base font-extrabold tracking-tight">FisiFun</span>
+      </Link>
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+        <MobileMenu primary={NAV.slice(0, 5)} extra={NAV.slice(5)} />
+      </div>
+    </header>
   );
 }
 
@@ -100,15 +124,19 @@ const NAV = [
 
 function Sidebar() {
   const pathname = usePathname();
+  const { user } = useMe();
   return (
     <aside className="fisifun-chrome hidden w-56 shrink-0 border-r border-[var(--border)] bg-[var(--bg-elev)] md:block">
       <div className="sticky top-0 p-4">
-        <Link href="/" className="mb-3 flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-xl shadow-md">
-            ⚛️
-          </span>
-          <span className="text-lg font-extrabold tracking-tight">FisiFun</span>
-        </Link>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-xl shadow-md">
+              ⚛️
+            </span>
+            <span className="text-lg font-extrabold tracking-tight">FisiFun</span>
+          </Link>
+          <NotificationBell />
+        </div>
         <SidebarSubjectBadge />
         <nav className="flex flex-col gap-1">
           {NAV.map((item) => {
@@ -129,6 +157,28 @@ function Sidebar() {
               </Link>
             );
           })}
+          <Link
+            href="/configuracoes"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+              pathname.startsWith("/configuracoes")
+                ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
+                : "text-[var(--muted)] hover:bg-[var(--bg)]"
+            }`}
+          >
+            <Settings size={18} /> Configurações
+          </Link>
+          {user?.role === "ADMIN" && (
+            <Link
+              href="/admin"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition ${
+                pathname.startsWith("/admin")
+                  ? "bg-rose-500/15 text-rose-500"
+                  : "text-rose-500 hover:bg-rose-500/10"
+              }`}
+            >
+              <Shield size={18} /> Painel Admin
+            </Link>
+          )}
         </nav>
         <div className="mt-6 flex flex-col gap-3">
           <AuthBadge />

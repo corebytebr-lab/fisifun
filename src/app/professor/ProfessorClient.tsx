@@ -6,7 +6,8 @@ import { ArrowLeft, Send, Sparkles, Play, Loader2, Hand, Trophy } from "lucide-r
 import { Auditorium, type LumerState, type LumerMood } from "@/components/professor/Auditorium";
 import { MicButton } from "@/components/professor/MicButton";
 import { Whiteboard } from "@/components/professor/Whiteboard";
-import { CHAPTERS } from "@/content/index";
+import { chaptersBySubject } from "@/content/index";
+import { SUBJECTS } from "@/lib/types";
 import { useGame } from "@/lib/store";
 import { useHydrated } from "@/lib/useHydrated";
 import {
@@ -115,6 +116,9 @@ export function ProfessorClient() {
   const mounted = useHydrated();
 
   const awardXp = useGame((s) => s.awardXp);
+  const currentSubject = useGame((s) => s.currentSubject);
+  const subjectInfo = SUBJECTS.find((s) => s.id === currentSubject) ?? SUBJECTS[0];
+  const subjectChapters = chaptersBySubject(currentSubject);
 
   const [phase, setPhase] = useState<Phase>("select");
   const [topic, setTopic] = useState<Topic | null>(null);
@@ -338,11 +342,17 @@ export function ProfessorClient() {
               Escolha um assunto. Você vai entrar no auditório, explicar aos Lumers (os alunos) e responder
               às perguntas deles. Explicar bem rende XP alto.
             </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">Matéria: <span className="font-bold text-[var(--fg)]">{subjectInfo.emoji} {subjectInfo.label}</span></p>
           </div>
         </header>
 
         <div className="space-y-4">
-          {CHAPTERS.map((c) => (
+          {subjectChapters.length === 0 && (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elev)] p-4 text-sm text-[var(--muted)]">
+              Sem capítulos para {subjectInfo.label} ainda.
+            </div>
+          )}
+          {subjectChapters.map((c) => (
             <details
               key={c.id}
               className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elev)] p-4 open:shadow-sm"

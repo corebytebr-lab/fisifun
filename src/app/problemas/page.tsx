@@ -7,6 +7,7 @@ import { CHAPTER_LABEL } from "@/content/games";
 import { useGame } from "@/lib/store";
 import { useHydrated } from "@/lib/useHydrated";
 import { Card } from "@/components/ui/Card";
+import { SUBJECTS } from "@/lib/types";
 import { callGemini, GeminiError, TUTOR_SYSTEM, type GeminiMessage } from "@/lib/gemini";
 import { RichText } from "@/lib/format";
 import { BookOpen, CheckCircle2, XCircle, Sparkles, Loader2, Filter } from "lucide-react";
@@ -102,6 +103,28 @@ export default function ProblemasPage() {
     if (result === "wrong" && state.infiniteHearts === false) {
       state.loseHeart();
     }
+  }
+
+  const currentSubject = state.currentSubject;
+  const subjectInfo = SUBJECTS.find((s) => s.id === currentSubject) ?? SUBJECTS[0];
+
+  if (currentSubject !== "fisica") {
+    return (
+      <div className="flex flex-col gap-4 px-4 pt-4 md:px-8">
+        <header>
+          <h1 className="flex items-center gap-2 text-2xl font-extrabold md:text-3xl">
+            <BookOpen /> Problemas do livro
+          </h1>
+          <p className="text-sm text-[var(--muted)]">Matéria atual: <span className="font-bold text-[var(--fg)]">{subjectInfo.emoji} {subjectInfo.label}</span></p>
+        </header>
+        <Card>
+          <div className="text-base font-bold">Banco de problemas em preparação</div>
+          <div className="mt-1 text-sm text-[var(--muted)]">
+            Por enquanto só Física tem problemas do livro (Halliday) integrados. Para {subjectInfo.label}, use a <Link href="/trilha" className="text-indigo-500 underline">Trilha</Link> ou o <Link href="/treino" className="text-indigo-500 underline">Treino</Link>.
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   return (

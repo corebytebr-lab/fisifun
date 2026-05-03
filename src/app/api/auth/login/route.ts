@@ -22,10 +22,24 @@ export async function POST(req: NextRequest) {
       await prisma.authLog.create({ data: { userId: user.id, email: normEmail, success: false, ip, ua } });
       return NextResponse.json({ error: "invalid" }, { status: 401 });
     }
-    await createSession({ uid: user.id, email: user.email, role: user.role, name: user.name });
+    await createSession({
+      uid: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      plan: user.plan,
+      planUntil: user.planUntil ? user.planUntil.toISOString() : null,
+      subjectsAllowed: user.subjectsAllowed,
+    });
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await prisma.authLog.create({ data: { userId: user.id, email: normEmail, success: true, ip, ua } });
-    return NextResponse.json({ ok: true, user: { id: user.id, email: user.email, role: user.role, name: user.name } });
+    return NextResponse.json({
+      ok: true,
+      user: {
+        id: user.id, email: user.email, role: user.role, name: user.name,
+        plan: user.plan, planUntil: user.planUntil, subjectsAllowed: user.subjectsAllowed,
+      },
+    });
   } catch (err) {
     return NextResponse.json({ error: "server-error" }, { status: 500 });
   }

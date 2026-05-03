@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import type { Role } from "@prisma/client";
+import type { Role, Plan } from "@prisma/client";
+import { PLANS, SUBJECT_IDS } from "@/lib/plans";
 
 async function requireAdmin() {
   const s = await getSession();
@@ -33,6 +34,9 @@ export async function GET(req: NextRequest) {
       role: true,
       active: true,
       classGroup: true,
+      plan: true,
+      planUntil: true,
+      subjectsAllowed: true,
       createdAt: true,
       lastLoginAt: true,
       state: { select: { level: true, xp: true, streak: true, currentSubject: true } },
@@ -40,6 +44,31 @@ export async function GET(req: NextRequest) {
     take: 500,
   });
   return NextResponse.json({ users });
+}
+
+function normalizePlanInput(body: Record<string, unknown>): {
+  plan: Plan;
+  planUntil: Date | null;
+  subjectsAllowed: string[];
+} {
+  const plan = (body.plan as Plan) ?? "TRIAL";
+  const info = PLANS[plan] ?? PLANS.TRIAL;
+  let planUntil: Date | null = null;
+  if (typeof body.planUntil === "string" && body.planUntil) {
+    const d = new Date(body.planUntil);
+    if (!Number.isNaN(d.getTime())) planUntil = d;
+  } else if (info.defaultDurationDays != null) {
+    planUntil = new Date(Date.now() + info.defaultDurationDays * 86400000);
+  }
+  let subjectsAllowed: string[] = [];
+  if (info.subjectAccess === "single") {
+    const raw = (body.subjectsAllowed as string[] | undefined) ?? [];
+    const valid = raw.filter((s) => (SUBJECT_IDS as readonly string[]).includes(s));
+    subjectsAllowed = valid.length > 0 ? [valid[0]] : ["fisica"];
+  } else if (info.subjectAccess === "all") {
+    subjectsAllowed = [...SUBJECT_IDS];
+  }
+  return { plan, planUntil, subjectsAllowed };
 }
 
 export async function POST(req: NextRequest) {
@@ -56,9 +85,17 @@ export async function POST(req: NextRequest) {
   const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) return NextResponse.json({ error: "email-exists" }, { status: 409 });
   const passwordHash = await bcrypt.hash(password, 10);
+  const { plan, planUntil, subjectsAllowed } = normalizePlanInput(body);
   const u = await prisma.user.create({
-    data: { email, name, passwordHash, role, classGroup, state: { create: { data: {} } } },
+    data: {
+      email, name, passwordHash, role, classGroup,
+      plan, planUntil, subjectsAllowed,
+      state: { create: { data: {} } },
+    },
   });
-  await prisma.auditLog.create({ data: { actorId: s.uid, action: "user.create", target: u.id, meta: { email, role } } });
-  return NextResponse.json({ ok: true, user: { id: u.id, email: u.email, name: u.name, role: u.role } });
+  await prisma.auditLog.create({ data: { actorId: s.uid, action: "user.create", target: u.id, meta: { email, role, plan } } });
+  return NextResponse.json({
+    ok: true,
+    user: { id: u.id, email: u.email, name: u.name, role: u.role, plan: u.plan, planUntil: u.planUntil, subjectsAllowed: u.subjectsAllowed },
+  });
 }

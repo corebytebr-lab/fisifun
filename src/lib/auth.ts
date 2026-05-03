@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
-import { Role } from "@prisma/client";
+import { Role, Plan } from "@prisma/client";
 
 const SECRET = new TextEncoder().encode(
   process.env.AUTH_SECRET || "dev-fallback-secret-change-me-32chars-min!!"
@@ -13,6 +13,9 @@ export interface SessionPayload {
   email: string;
   role: Role;
   name: string;
+  plan?: Plan;
+  planUntil?: string | null;
+  subjectsAllowed?: string[];
 }
 
 export async function createSession(data: SessionPayload) {

@@ -16,17 +16,32 @@ enum Role {
   ADMIN
 }
 
+enum Plan {
+  TRIAL      // 7 dias grátis
+  ALUNO      // R$59,90/m — 1 matéria
+  TOTAL      // R$99,90/m — 4 matérias
+  PREMIUM    // R$149,90/m — 4 matérias + IA ilimitada
+  ANUAL      // R$799/ano — equivale a TOTAL
+  TRIENAL    // R$1997 / 3 anos — equivale a TOTAL
+  FAMILIA    // R$199/m — até 4 contas, equivale a TOTAL
+  ESCOLA     // R$25/aluno/m — turma B2B
+  BLOCKED    // bloqueado pelo admin
+}
+
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String
-  passwordHash  String
-  role          Role      @default(STUDENT)
-  active        Boolean   @default(true)
-  classGroup    String?   // optional turma label
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  lastLoginAt   DateTime?
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  passwordHash    String
+  role            Role      @default(STUDENT)
+  active          Boolean   @default(true)
+  classGroup      String?   // optional turma label
+  plan            Plan      @default(TRIAL)
+  planUntil       DateTime? // quando o plano expira; null = sem expiração
+  subjectsAllowed String[]  @default([]) // só usado pra ALUNO; demais planos liberam tudo
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLoginAt     DateTime?
 
   // Persisted gameplay state (single row per user, JSON blob mirroring zustand)
   state         UserState?
@@ -44,6 +59,7 @@ model User {
   @@index([role])
   @@index([active])
   @@index([classGroup])
+  @@index([plan])
 }
 
 model UserState {

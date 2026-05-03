@@ -1,22 +1,28 @@
 "use client";
 
-import { CHAPTERS } from "@/content/index";
+import { chaptersBySubject } from "@/content/index";
 import { Card } from "@/components/ui/Card";
 import { InlineMath, RichText } from "@/lib/format";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { normalizeText } from "@/lib/format";
 import Link from "next/link";
+import { useGame } from "@/lib/store";
+import { SUBJECTS } from "@/lib/types";
 
 export default function FormulasPage() {
   const [q, setQ] = useState("");
   const [active, setActive] = useState<string | null>(null);
   const norm = normalizeText(q);
+  const currentSubject = useGame((s) => s.currentSubject);
+  const subjectChapters = useMemo(() => chaptersBySubject(currentSubject), [currentSubject]);
+  const subjectInfo = SUBJECTS.find((s) => s.id === currentSubject) ?? SUBJECTS[0];
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-4 md:px-8">
       <header>
         <h1 className="text-2xl font-extrabold md:text-3xl">Biblioteca de Fórmulas</h1>
         <p className="text-sm text-[var(--muted)]">Toque numa fórmula para ver variáveis, unidades e quando aplicar.</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">Matéria: <span className="font-bold text-[var(--fg)]">{subjectInfo.emoji} {subjectInfo.label}</span></p>
       </header>
 
       <input
@@ -27,7 +33,7 @@ export default function FormulasPage() {
       />
 
       <div className="flex flex-col gap-6">
-        {CHAPTERS.map((c) => {
+        {subjectChapters.map((c) => {
           const items = c.formulas.filter((f) => {
             if (!norm) return true;
             return normalizeText(`${f.name} ${f.latex} ${c.title}`).includes(norm);

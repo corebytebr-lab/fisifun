@@ -10,9 +10,9 @@ export interface AIConfig {
 
 const KEY = "ai-config";
 const DEFAULT: AIConfig = {
-  provider: "gemini",
+  provider: "deepseek",
   apiKey: "",
-  model: null,
+  model: "deepseek-chat",
   monthlyQuota: 50,
 };
 

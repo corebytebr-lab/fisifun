@@ -102,20 +102,21 @@ function createAuditorium(
     // down so the audience occupies most of the frame instead of leaving a
     // tall band of ceiling/columns above them.
     if (aspect < 0.75) {
-      // very tall portrait (typical phone in portrait above the drawer)
-      camera.fov = 82;
-      camera.position.set(0, 4.6, -4.2);
-      camTarget.set(0, 0.4, 7);
+      // very tall portrait (typical phone) — zoom in tight on the audience so
+      // they fill the canvas instead of leaving a tall ceiling band of void.
+      camera.fov = 90;
+      camera.position.set(0, 3.0, -1.6);
+      camTarget.set(0, 1.6, 7);
     } else if (aspect < 1.1) {
       // squarish (phone landscape, small windows)
-      camera.fov = 70;
-      camera.position.set(0, 4.1, -3.4);
-      camTarget.set(0, 0.9, 7);
+      camera.fov = 76;
+      camera.position.set(0, 3.2, -2.0);
+      camTarget.set(0, 1.6, 7);
     } else if (aspect < 1.7) {
       // standard tablet/landscape
-      camera.fov = 60;
-      camera.position.set(0, 3.6, -2.8);
-      camTarget.set(0, 1.5, 7);
+      camera.fov = 62;
+      camera.position.set(0, 3.4, -2.4);
+      camTarget.set(0, 1.7, 7);
     } else {
       // wide desktop
       camera.fov = 54;
