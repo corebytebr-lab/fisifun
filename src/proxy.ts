@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyTokenEdge, SESSION_COOKIE } from "@/lib/auth";
 
-const PUBLIC_PATHS = new Set(["/login", "/api/auth/login", "/api/auth/logout", "/api/health"]);
+const PUBLIC_PATHS = new Set([
+  "/login",
+  "/api/auth/login",
+  "/api/auth/logout",
+  "/api/health",
+  "/api/kiwify-webhook",
+  "/api/kiwify-links",
+]);
 const PUBLIC_PREFIXES = ["/_next", "/favicon", "/icons", "/screenshots", "/manifest"];
 
 export async function proxy(req: NextRequest) {

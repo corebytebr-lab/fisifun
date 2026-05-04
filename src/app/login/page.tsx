@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const WHATS_BASE = "https://wa.me/5561991770953?text=";
-const PLANS_DISPLAY = [
-  { name: "Trial 3 dias", price: "Grátis", desc: "3 dias com tudo do Total liberado", color: "from-amber-400 to-orange-500" },
-  { name: "Aluno", price: "R$59,90/mês", desc: "1 matéria · 30 perguntas IA/mês", color: "from-sky-500 to-cyan-500" },
-  { name: "Total", price: "R$99,90/mês", desc: "4 matérias · 100 perguntas IA/mês", color: "from-indigo-500 to-violet-500" },
-  { name: "Premium", price: "R$149,90/mês", desc: "Tudo + IA ilimitada + prioridade", color: "from-violet-500 to-fuchsia-500" },
-  { name: "Anual", price: "R$799/ano", desc: "12 meses do Total (~33% off)", color: "from-emerald-500 to-teal-500" },
-  { name: "Família", price: "R$199/mês", desc: "Até 4 contas com Total", color: "from-rose-500 to-pink-500" },
-  { name: "3 Anos", price: "R$1.997 (uma vez)", desc: "Total por 36 meses", color: "from-fuchsia-500 to-purple-600" },
+type PlanKey = "trial" | "aluno" | "total" | "premium" | "anual" | "familia" | "trienal";
+const PLANS_DISPLAY: { key: PlanKey; name: string; price: string; desc: string; color: string }[] = [
+  { key: "trial", name: "Trial 3 dias", price: "Grátis", desc: "3 dias com tudo do Total liberado", color: "from-amber-400 to-orange-500" },
+  { key: "aluno", name: "Aluno", price: "R$59,90/mês", desc: "1 matéria · 30 perguntas IA/mês", color: "from-sky-500 to-cyan-500" },
+  { key: "total", name: "Total", price: "R$99,90/mês", desc: "4 matérias · 100 perguntas IA/mês", color: "from-indigo-500 to-violet-500" },
+  { key: "premium", name: "Premium", price: "R$149,90/mês", desc: "Tudo + IA ilimitada + prioridade", color: "from-violet-500 to-fuchsia-500" },
+  { key: "anual", name: "Anual", price: "R$799/ano", desc: "12 meses do Total (~33% off)", color: "from-emerald-500 to-teal-500" },
+  { key: "familia", name: "Família", price: "R$199/mês", desc: "Até 4 contas com Total", color: "from-rose-500 to-pink-500" },
+  { key: "trienal", name: "3 Anos", price: "R$1.997 (uma vez)", desc: "Total por 36 meses", color: "from-fuchsia-500 to-purple-600" },
 ];
 
 export default function LoginPage() {
@@ -31,7 +32,15 @@ function LoginInner() {
   const [error, setError] = useState<string | null>(null);
   const [showPlans, setShowPlans] = useState(false);
   const [referral, setReferral] = useState("");
+  const [kiwifyLinks, setKiwifyLinks] = useState<Partial<Record<PlanKey, string>>>({});
   const renewMsg = sp.get("renew");
+
+  useEffect(() => {
+    fetch("/api/kiwify-links")
+      .then((r) => (r.ok ? r.json() : { links: {} }))
+      .then((d) => setKiwifyLinks(d.links ?? {}))
+      .catch(() => undefined);
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,22 +128,32 @@ function LoginInner() {
                 Escolha um plano e fale com a equipe pelo WhatsApp para liberar o pagamento (Pix, cartão de crédito ou débito):
               </div>
               <ul className="flex flex-col gap-1.5">
-                {PLANS_DISPLAY.map((p) => (
-                  <li key={p.name}>
-                    <a
-                      href={`${WHATS_BASE}${encodeURIComponent(`Olá! Quero contratar o plano ${p.name} (${p.price}) do FisiFun.${referral ? ` Código de indicação: ${referral}` : ""}`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`flex items-center gap-2 rounded-xl bg-gradient-to-r ${p.color} p-2 text-left text-white shadow-sm transition hover:shadow-md`}
-                    >
-                      <div className="flex-1">
-                        <div className="text-xs font-extrabold">{p.name}</div>
-                        <div className="text-[10px] opacity-90">{p.desc}</div>
-                      </div>
-                      <div className="text-right text-[11px] font-bold">{p.price}</div>
-                    </a>
-                  </li>
-                ))}
+                {PLANS_DISPLAY.map((p) => {
+                  const kiwify = p.key !== "trial" ? kiwifyLinks[p.key] : undefined;
+                  const refSuffix = referral ? `?ref=${encodeURIComponent(referral)}` : "";
+                  const href = kiwify
+                    ? `${kiwify}${refSuffix}`
+                    : `${WHATS_BASE}${encodeURIComponent(`Olá! Quero contratar o plano ${p.name} (${p.price}) do FisiFun.${referral ? ` Código de indicação: ${referral}` : ""}`)}`;
+                  return (
+                    <li key={p.key}>
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center gap-2 rounded-xl bg-gradient-to-r ${p.color} p-2 text-left text-white shadow-sm transition hover:shadow-md`}
+                      >
+                        <div className="flex-1">
+                          <div className="text-xs font-extrabold">
+                            {p.name}
+                            {kiwify && <span className="ml-1 rounded bg-white/20 px-1 text-[9px]">Pix · Cartão</span>}
+                          </div>
+                          <div className="text-[10px] opacity-90">{p.desc}</div>
+                        </div>
+                        <div className="text-right text-[11px] font-bold">{p.price}</div>
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
               <label className="mt-2 flex flex-col gap-1 text-xs">
                 <span className="font-semibold text-zinc-700 dark:text-zinc-300">Código de indicação (opcional)</span>

@@ -18,6 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <nav className="hidden gap-1 md:flex">
               <NavLink href="/admin">Dashboard</NavLink>
               <NavLink href="/admin/usuarios">Usuários</NavLink>
+              <NavLink href="/admin/pagamentos">Pagamentos</NavLink>
               <NavLink href="/admin/avisos">Avisos</NavLink>
               <NavLink href="/admin/ia">IA</NavLink>
               <NavLink href="/admin/conteudo">Conteúdo</NavLink>
@@ -38,6 +39,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <nav className="flex gap-1 overflow-x-auto">
             <NavLink href="/admin">Dashboard</NavLink>
             <NavLink href="/admin/usuarios">Usuários</NavLink>
+            <NavLink href="/admin/pagamentos">Pagamentos</NavLink>
             <NavLink href="/admin/avisos">Avisos</NavLink>
             <NavLink href="/admin/ia">IA</NavLink>
             <NavLink href="/admin/conteudo">Conteúdo</NavLink>
