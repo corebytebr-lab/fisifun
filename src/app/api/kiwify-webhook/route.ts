@@ -81,6 +81,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: "plan-not-mapped", productId, productName }, { status: 200 });
   }
 
+  const customerName = [payload.Customer?.first_name, payload.Customer?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const baseUrl =
+    process.env.PUBLIC_APP_URL ?? `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+
   const result = await applyPaidOrder({
     email,
     plan,
@@ -88,6 +96,8 @@ export async function POST(req: NextRequest) {
     orderId: payload.order_id ?? "unknown",
     source: "kiwify",
     rawEvent: payload,
+    baseUrl,
+    customerName: customerName || undefined,
   });
 
   return NextResponse.json(result);

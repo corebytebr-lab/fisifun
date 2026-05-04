@@ -5,6 +5,8 @@ const PUBLIC_PATHS = new Set([
   "/login",
   "/api/auth/login",
   "/api/auth/logout",
+  "/api/auth/magic-link",
+  "/api/auth/verify",
   "/api/health",
   "/api/kiwify-webhook",
   "/api/kiwify-links",

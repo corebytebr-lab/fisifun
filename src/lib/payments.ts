@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import type { Plan } from "@prisma/client";
 import { PLANS, SUBJECT_IDS } from "@/lib/plans";
+import { issueMagicLink } from "@/lib/magic-link";
 
 export interface KiwifyConfig {
   /** HMAC secret used by Kiwify to sign webhooks (Settings → Integrations → Webhook). */
@@ -76,6 +77,10 @@ export async function applyPaidOrder(args: {
   orderId: string;
   source: "kiwify";
   rawEvent?: unknown;
+  /** Public app URL (for magic link emails when auto-creating). */
+  baseUrl?: string;
+  /** Customer's first name from Kiwify (for the welcome email). */
+  customerName?: string;
 }): Promise<{ ok: boolean; userId?: string; created?: boolean; reason?: string }> {
   const email = args.email.trim().toLowerCase();
   if (!email) return { ok: false, reason: "missing-email" };
@@ -92,10 +97,11 @@ export async function applyPaidOrder(args: {
     const tmp = Math.random().toString(36).slice(2, 12) + "A1!";
     const bcrypt = await import("bcryptjs");
     const passwordHash = await bcrypt.hash(tmp, 10);
+    const displayName = (args.customerName ?? email.split("@")[0]).trim() || email.split("@")[0];
     user = await prisma.user.create({
       data: {
         email,
-        name: email.split("@")[0],
+        name: displayName,
         passwordHash,
         role: "STUDENT",
         plan: args.plan,
@@ -105,6 +111,20 @@ export async function applyPaidOrder(args: {
       },
     });
     created = true;
+
+    // Send a welcome magic link so the customer can log in without a password.
+    if (args.baseUrl) {
+      try {
+        await issueMagicLink({
+          email,
+          purpose: "welcome",
+          baseUrl: args.baseUrl,
+          nameOverride: displayName,
+        });
+      } catch (err) {
+        console.error("[applyPaidOrder] magic link failed", err);
+      }
+    }
   } else {
     // Extend or set: if already had time remaining, extend on top of it.
     const baseTime =

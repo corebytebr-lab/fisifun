@@ -33,7 +33,11 @@ function LoginInner() {
   const [showPlans, setShowPlans] = useState(false);
   const [referral, setReferral] = useState("");
   const [kiwifyLinks, setKiwifyLinks] = useState<Partial<Record<PlanKey, string>>>({});
+  const [magicSent, setMagicSent] = useState(false);
+  const [magicBusy, setMagicBusy] = useState(false);
+  const [showMagic, setShowMagic] = useState(false);
   const renewMsg = sp.get("renew");
+  const mlError = sp.get("ml_error");
 
   useEffect(() => {
     fetch("/api/kiwify-links")
@@ -41,6 +45,28 @@ function LoginInner() {
       .then((d) => setKiwifyLinks(d.links ?? {}))
       .catch(() => undefined);
   }, []);
+
+  const sendMagicLink = async () => {
+    if (!email) {
+      setError("Digite seu e-mail antes.");
+      return;
+    }
+    setError(null);
+    setMagicBusy(true);
+    try {
+      const res = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, purpose: "login" }),
+      });
+      if (!res.ok) throw new Error("fail");
+      setMagicSent(true);
+    } catch {
+      setError("Não consegui enviar o link agora. Tente de novo em alguns segundos.");
+    } finally {
+      setMagicBusy(false);
+    }
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +130,11 @@ function LoginInner() {
           </label>
 
           {error && <div className="rounded-xl bg-rose-100 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950 dark:text-rose-300">{error}</div>}
+          {mlError && (
+            <div className="rounded-xl bg-amber-100 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              Link inválido ou expirado. Peça um novo abaixo.
+            </div>
+          )}
 
           <button
             type="submit"
@@ -113,6 +144,40 @@ function LoginInner() {
             {loading ? "Entrando…" : "Entrar"}
           </button>
         </form>
+
+        <div className="mt-3 flex flex-col gap-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={() => setShowMagic((v) => !v)}
+            className="text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
+          >
+            {showMagic ? "Ocultar" : "Esqueci minha senha / Entrar com link por email"}
+          </button>
+          {showMagic && (
+            <div className="rounded-xl bg-zinc-50 p-3 text-xs dark:bg-zinc-950">
+              {magicSent ? (
+                <p className="text-emerald-700 dark:text-emerald-400">
+                  ✉️ Se o e-mail estiver cadastrado, vai chegar um link em <strong>{email}</strong>.
+                  Pode fechar essa aba e abrir o e-mail — vale por 30 minutos.
+                </p>
+              ) : (
+                <>
+                  <p className="mb-2 text-zinc-600 dark:text-zinc-400">
+                    Digite o e-mail acima e clique abaixo. Mandamos um link pra você entrar sem senha (ou trocar a sua).
+                  </p>
+                  <button
+                    type="button"
+                    onClick={sendMagicLink}
+                    disabled={magicBusy || !email}
+                    className="w-full rounded-xl bg-indigo-500/10 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-500/20 disabled:opacity-50 dark:text-indigo-300"
+                  >
+                    {magicBusy ? "Enviando…" : "✉️ Receber link por e-mail"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="mt-5 flex flex-col gap-2">
           <button
