@@ -7,6 +7,7 @@ const PUBLIC_PATHS = new Set([
   "/sobre",
   "/termos",
   "/privacidade",
+  "/duvidas-frequentes",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/magic-link",

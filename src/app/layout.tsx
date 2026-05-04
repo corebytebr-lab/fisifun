@@ -3,6 +3,8 @@ import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { StateSync } from "@/components/StateSync";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { ORG_SCHEMA, WEBSITE_SCHEMA } from "@/lib/seo-schemas";
 
 const SITE_URL = process.env.PUBLIC_APP_URL ?? "https://fisifun.corebytecnologia.com";
 
@@ -80,6 +82,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <JsonLd data={ORG_SCHEMA} />
+        <JsonLd data={WEBSITE_SCHEMA} />
+      </head>
       <body className="min-h-screen">
         <AppShell>{children}</AppShell>
         <ServiceWorkerRegister />

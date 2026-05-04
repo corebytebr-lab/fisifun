@@ -1,5 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { SOFTWARE_APP_SCHEMA, buildFaqSchema } from "@/lib/seo-schemas";
+
+const PRICING_FAQ = [
+  {
+    q: "O FisiFun cobra mensalmente?",
+    a: "Os planos Aluno (R$59,90), Total (R$99,90), Premium (R$149,90) e Família (R$199) são mensais e renovam automaticamente até você cancelar. O Anual (R$799) é pagamento único válido por 12 meses, sem renovação automática.",
+  },
+  {
+    q: "Tem trial gratuito?",
+    a: "Sim. Você cria conta sem cartão e ganha 3 dias com tudo do plano Total liberado. Cancela sozinho, sem cobrança.",
+  },
+  {
+    q: "Quais formas de pagamento aceitam?",
+    a: "Cartão de crédito (parcelável), Pix e boleto bancário, processados pela Kiwify (gateway oficial brasileiro). O pagamento é seguro com criptografia SSL.",
+  },
+  {
+    q: "Como funciona o plano Família?",
+    a: "Você assina 1 vez por R$199/mês e convida até 3 outras pessoas (total 4 contas). Cada uma recebe um link mágico por email e acessa todo o conteúdo do plano Total. Quando você renova, todos renovam junto.",
+  },
+  {
+    q: "Sou de uma escola, tem desconto?",
+    a: "Sim. Pra escolas, cursinhos e turmas com 20+ alunos temos plano B2B sob medida com painel de gestão, ranking de XP por aluno e desconto por volume. Falar pelo WhatsApp clicando no botão verde no fim da página.",
+  },
+] as const;
 
 export const metadata: Metadata = {
   title: "Preços e Planos",
@@ -91,10 +116,17 @@ const PLANS: Plan[] = [
 export default function PrecosPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
+      <JsonLd data={SOFTWARE_APP_SCHEMA} />
+      <JsonLd data={buildFaqSchema(PRICING_FAQ)} />
       <div className="text-center">
         <h1 className="text-3xl font-extrabold md:text-5xl">Preços simples. Estudo sério.</h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-[var(--muted)] md:text-base">
           Comece grátis por 3 dias. Cancele quando quiser. Pagamento seguro pela Kiwify (cartão, Pix ou boleto).
+        </p>
+        <p className="mx-auto mt-2 max-w-2xl text-xs text-[var(--muted)]">
+          FisiFun é um aplicativo brasileiro de estudos gamificado pra Física, Química, Cálculo 1 e Geometria
+          Analítica — pensado pra estudantes de Enem, vestibular e engenharia. Trilhas baseadas em Halliday,
+          Brown, Stewart e Winterle.
         </p>
       </div>
 
@@ -156,6 +188,27 @@ export default function PrecosPage() {
           Falar pelo WhatsApp
         </a>
       </div>
+
+      <section className="mt-12">
+        <h2 className="text-2xl font-extrabold md:text-3xl">Perguntas frequentes sobre preços</h2>
+        <div className="mt-4 space-y-3">
+          {PRICING_FAQ.map((f) => (
+            <details
+              key={f.q}
+              className="rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] p-4"
+            >
+              <summary className="cursor-pointer font-bold">{f.q}</summary>
+              <p className="mt-2 text-sm text-[var(--muted)]">{f.a}</p>
+            </details>
+          ))}
+          <p className="text-center text-sm text-[var(--muted)]">
+            Mais dúvidas?{" "}
+            <Link href="/duvidas-frequentes" className="text-indigo-500 hover:underline">
+              Ver FAQ completo
+            </Link>
+          </p>
+        </div>
+      </section>
 
       <div className="mt-8 text-center text-sm text-[var(--muted)]">
         <Link href="/login" className="text-indigo-500 hover:underline">
