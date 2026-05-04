@@ -9,9 +9,21 @@ interface Stats {
   newToday: number;
   attemptsToday: number;
   attemptsWeek: number;
+  expiringSoon: number;
+  planBreakdown: Record<string, number>;
   topRanking: { userId: string; name: string; email: string; xp: number; level: number; streak: number; currentSubject: string }[];
   recentLogins: { at: string; name: string; email: string; ip: string | null }[];
 }
+
+const PLAN_LABELS: Record<string, { label: string; color: string }> = {
+  TRIAL: { label: "Trial", color: "bg-amber-500/15 text-amber-600" },
+  ALUNO: { label: "Aluno", color: "bg-sky-500/15 text-sky-600" },
+  TOTAL: { label: "Total", color: "bg-indigo-500/15 text-indigo-600" },
+  PREMIUM: { label: "Premium", color: "bg-fuchsia-500/15 text-fuchsia-600" },
+  FAMILIA: { label: "Família", color: "bg-rose-500/15 text-rose-600" },
+  ANUAL: { label: "Anual", color: "bg-emerald-500/15 text-emerald-600" },
+  EXPIRED: { label: "Expirado", color: "bg-gray-500/15 text-gray-600" },
+};
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -27,13 +39,35 @@ export default function AdminDashboard() {
     <div className="flex flex-col gap-5">
       <h1 className="text-2xl font-extrabold">📊 Dashboard</h1>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
         <Stat label="Usuários" value={stats?.totalUsers ?? "—"} icon="👥" />
         <Stat label="Ativos" value={stats?.activeUsers ?? "—"} icon="✅" />
         <Stat label="Novos hoje" value={stats?.newToday ?? "—"} icon="🆕" />
         <Stat label="Tentativas hoje" value={stats?.attemptsToday ?? "—"} icon="📝" />
         <Stat label="Tentativas semana" value={stats?.attemptsWeek ?? "—"} icon="📅" />
+        <Stat label="Expira em 7d" value={stats?.expiringSoon ?? "—"} icon="⏳" />
       </div>
+
+      {stats?.planBreakdown && Object.keys(stats.planBreakdown).length > 0 && (
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elev)] p-4">
+          <h2 className="mb-3 font-bold">📦 Distribuição de planos</h2>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(stats.planBreakdown)
+              .sort(([, a], [, b]) => b - a)
+              .map(([plan, count]) => {
+                const meta = PLAN_LABELS[plan] ?? { label: plan, color: "bg-gray-500/15 text-gray-600" };
+                return (
+                  <span
+                    key={plan}
+                    className={`rounded-full px-3 py-1 text-sm font-bold ${meta.color}`}
+                  >
+                    {meta.label}: {count}
+                  </span>
+                );
+              })}
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elev)] p-4">
@@ -79,7 +113,11 @@ export default function AdminDashboard() {
           <QuickLink href="/admin/usuarios?new=1" emoji="➕" label="Novo usuário" />
           <QuickLink href="/admin/usuarios?import=1" emoji="📥" label="Importar CSV" />
           <QuickLink href="/admin/avisos" emoji="📢" label="Novo aviso" />
-          <QuickLink href="/admin/conteudo" emoji="📚" label="Conteúdo" />
+          <QuickLink href="/admin/escolas" emoji="🏫" label="Gestores Escola" />
+          <QuickLink href="/admin/conteudo" emoji="🎬" label="Vídeo-aulas" />
+          <QuickLink href="/admin/pagamentos" emoji="💳" label="Pagamentos" />
+          <QuickLink href="/admin/ia" emoji="🤖" label="IA Config" />
+          <QuickLink href="/admin/logs" emoji="📋" label="Logs" />
         </div>
       </section>
     </div>

@@ -11,12 +11,33 @@ export async function GET() {
   const startOfWeek = new Date();
   startOfWeek.setDate(startOfWeek.getDate() - 7);
 
-  const [totalUsers, activeUsers, newToday, attemptsToday, attemptsWeek, topRanking, recentLogins] = await Promise.all([
+  const [
+    totalUsers,
+    activeUsers,
+    newToday,
+    attemptsToday,
+    attemptsWeek,
+    planBreakdown,
+    expiringSoon,
+    topRanking,
+    recentLogins,
+  ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { active: true } }),
     prisma.user.count({ where: { createdAt: { gte: startOfDay } } }),
     prisma.attempt.count({ where: { at: { gte: startOfDay } } }),
     prisma.attempt.count({ where: { at: { gte: startOfWeek } } }),
+    prisma.user.groupBy({ by: ["plan"], _count: { _all: true } }),
+    // assinaturas expirando nos próximos 7 dias
+    prisma.user.count({
+      where: {
+        planUntil: {
+          gte: new Date(),
+          lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+        plan: { in: ["ALUNO", "TOTAL", "PREMIUM", "FAMILIA", "ANUAL"] },
+      },
+    }),
     prisma.userState.findMany({
       orderBy: { xp: "desc" },
       take: 10,
@@ -36,6 +57,11 @@ export async function GET() {
     newToday,
     attemptsToday,
     attemptsWeek,
+    expiringSoon,
+    planBreakdown: planBreakdown.reduce<Record<string, number>>((acc, p) => {
+      acc[p.plan] = p._count._all;
+      return acc;
+    }, {}),
     topRanking: topRanking.map((s) => ({
       userId: s.userId,
       name: s.user.name,
