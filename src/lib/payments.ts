@@ -38,12 +38,14 @@ const KEY = "kiwify-config";
 
 export async function getKiwifyConfig(): Promise<KiwifyConfig> {
   const row = await prisma.appSetting.findUnique({ where: { key: KEY } });
-  if (!row) return { ...DEFAULT };
+  // Fall back to env-var KIWIFY_WEBHOOK_SECRET when admin hasn't set it in /admin/pagamentos.
+  const envSecret = process.env.KIWIFY_WEBHOOK_SECRET ?? "";
+  if (!row) return { ...DEFAULT, webhookSecret: envSecret };
   const v = row.value as Partial<KiwifyConfig>;
   return {
-    webhookSecret: v.webhookSecret ?? "",
+    webhookSecret: v.webhookSecret || envSecret,
     productMap: v.productMap ?? {},
-    links: v.links ?? {},
+    links: { ...DEFAULT_LINKS, ...(v.links ?? {}) },
   };
 }
 
