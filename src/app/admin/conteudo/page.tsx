@@ -30,14 +30,14 @@ export default function ConteudoAdmin() {
   const [active, setActive] = useState<Subject>("fisica");
   const [error, setError] = useState<string>("");
 
-  async function load() {
-    setLoading(true);
+  async function load(opts?: { silent?: boolean }) {
+    if (!opts?.silent) setLoading(true);
     try {
       const r = await fetch("/api/admin/chapter-videos", { cache: "no-store" });
       const j = await r.json();
       setVideos(j.videos || []);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }
 
@@ -109,7 +109,7 @@ export default function ConteudoAdmin() {
                 videos={list}
                 onChange={() => {
                   setError("");
-                  load();
+                  load({ silent: true });
                 }}
                 onError={(e) => setError(e)}
               />
