@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Home,
@@ -15,14 +15,34 @@ import {
   Moon,
   Sun,
   Monitor,
+  MessageCircleQuestion,
+  ClipboardList,
+  Presentation,
+  LogIn,
+  LogOut,
+  Settings,
+  Shield,
+  Users,
+  School,
 } from "lucide-react";
 import { useGame } from "@/lib/store";
+import { SUBJECTS } from "@/lib/types";
+import { PomodoroFab } from "./Pomodoro";
+import { CalcFab } from "./CalcFab";
+import { useAuth } from "@/lib/useAuth";
+import { isFirebaseConfigured, signOut as fbSignOut } from "@/lib/firebase";
+import { useMe } from "@/lib/useMe";
+import { NotificationBell } from "./NotificationBell";
+import { MobileMenu } from "./MobileMenu";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const theme = useGame((s) => s.theme);
   const focusMode = useGame((s) => s.focusMode);
+  const hasChosenSubject = useGame((s) => s.hasChosenSubject);
   const regen = useGame((s) => s.regenHeartsIfDue);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
@@ -30,6 +50,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const id = setInterval(regen, 60_000);
     return () => clearInterval(id);
   }, [regen]);
+
+  // Onboarding: redireciona para /escolher na primeira visita
+  useEffect(() => {
+    if (!mounted) return;
+    if (!hasChosenSubject && pathname === "/") {
+      router.replace("/escolher");
+    }
+  }, [mounted, hasChosenSubject, pathname, router]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -47,21 +75,50 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     document.body.classList.toggle("focus-mode", focusMode);
   }, [focusMode, mounted]);
 
+  // Bare layout (no sidebar/nav, no FABs) for fullscreen pages like login and quadro
+  const normalized = pathname.replace(/\/$/, "") || "/";
+  if (normalized === "/login" || normalized === "/quadro" || normalized.startsWith("/quadro/")) {
+    return <div className="min-h-screen">{children}</div>;
+  }
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col md:flex-row">
       <Sidebar />
-      <main className="flex-1 pb-20 md:pb-6">{children}</main>
+      <div className="flex-1 pb-20 md:pb-6">
+        <MobileTopBar />
+        <main>{children}</main>
+      </div>
       <BottomNav />
+      <PomodoroFab />
+      <CalcFab />
     </div>
+  );
+}
+
+function MobileTopBar() {
+  return (
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)]/85 px-3 py-2 backdrop-blur md:hidden">
+      <Link href="/" className="flex items-center gap-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-base shadow">⚛️</span>
+        <span className="text-base font-extrabold tracking-tight">FisiFun</span>
+      </Link>
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+        <MobileMenu primary={NAV.slice(0, 5)} extra={NAV.slice(5)} />
+      </div>
+    </header>
   );
 }
 
 const NAV = [
   { href: "/", label: "Início", icon: Home },
   { href: "/trilha", label: "Trilha", icon: MapIcon },
-  { href: "/formulas", label: "Fórmulas", icon: BookOpen },
+  { href: "/problemas", label: "Problemas", icon: ClipboardList },
+  { href: "/professor", label: "Professor", icon: Presentation },
+  { href: "/duvida", label: "Dúvida", icon: MessageCircleQuestion },
   { href: "/treino", label: "Treino", icon: Dumbbell },
   { href: "/revisao", label: "Revisão", icon: Sparkles },
+  { href: "/formulas", label: "Fórmulas", icon: BookOpen },
   { href: "/prova", label: "Prova", icon: GraduationCap },
   { href: "/conquistas", label: "Conquistas", icon: Trophy },
   { href: "/perfil", label: "Perfil", icon: User },
@@ -69,15 +126,20 @@ const NAV = [
 
 function Sidebar() {
   const pathname = usePathname();
+  const { user } = useMe();
   return (
     <aside className="fisifun-chrome hidden w-56 shrink-0 border-r border-[var(--border)] bg-[var(--bg-elev)] md:block">
       <div className="sticky top-0 p-4">
-        <Link href="/" className="mb-6 flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-xl shadow-md">
-            ⚛️
-          </span>
-          <span className="text-lg font-extrabold tracking-tight">FisiFun</span>
-        </Link>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-xl shadow-md">
+              ⚛️
+            </span>
+            <span className="text-lg font-extrabold tracking-tight">FisiFun</span>
+          </Link>
+          <NotificationBell />
+        </div>
+        <SidebarSubjectBadge />
         <nav className="flex flex-col gap-1">
           {NAV.map((item) => {
             const Icon = item.icon;
@@ -97,12 +159,101 @@ function Sidebar() {
               </Link>
             );
           })}
+          <Link
+            href="/configuracoes"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+              pathname.startsWith("/configuracoes")
+                ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
+                : "text-[var(--muted)] hover:bg-[var(--bg)]"
+            }`}
+          >
+            <Settings size={18} /> Configurações
+          </Link>
+          {(user?.plan === "FAMILIA") && (
+            <Link
+              href="/familia"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                pathname.startsWith("/familia")
+                  ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
+                  : "text-[var(--muted)] hover:bg-[var(--bg)]"
+              }`}
+            >
+              <Users size={18} /> Família
+            </Link>
+          )}
+          {(user?.role === "SCHOOL_MANAGER" || user?.role === "ADMIN") && user?.schoolSlots != null && (
+            <Link
+              href="/escola"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition ${
+                pathname.startsWith("/escola")
+                  ? "bg-emerald-500/15 text-emerald-600"
+                  : "text-emerald-600 hover:bg-emerald-500/10"
+              }`}
+            >
+              <School size={18} /> Painel da Escola
+            </Link>
+          )}
+          {user?.role === "ADMIN" && (
+            <Link
+              href="/admin"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition ${
+                pathname.startsWith("/admin")
+                  ? "bg-rose-500/15 text-rose-500"
+                  : "text-rose-500 hover:bg-rose-500/10"
+              }`}
+            >
+              <Shield size={18} /> Painel Admin
+            </Link>
+          )}
         </nav>
-        <div className="mt-6">
+        <div className="mt-6 flex flex-col gap-3">
+          <AuthBadge />
           <ThemeSwitcher />
         </div>
       </div>
     </aside>
+  );
+}
+
+function AuthBadge() {
+  const auth = useAuth();
+  if (!isFirebaseConfigured()) return null;
+  if (auth.status === "loading") {
+    return <div className="text-xs text-[var(--muted)]">Verificando sessão…</div>;
+  }
+  if (auth.status === "signed-in") {
+    const u = auth.user;
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] p-2">
+        {u.photoURL ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={u.photoURL} alt={u.displayName ?? "Usuário"} className="h-8 w-8 rounded-full" referrerPolicy="no-referrer" />
+        ) : (
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold">
+            {(u.displayName ?? u.email ?? "?").slice(0, 1).toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0 flex-1 text-left">
+          <div className="truncate text-xs font-semibold">{u.displayName ?? "Usuário"}</div>
+          <div className="truncate text-[10px] text-[var(--muted)]">{u.email}</div>
+        </div>
+        <button
+          aria-label="Sair"
+          onClick={() => fbSignOut()}
+          className="rounded p-1 text-[var(--muted)] hover:bg-[var(--bg)]"
+        >
+          <LogOut size={14} />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <Link
+      href="/login"
+      className="flex items-center justify-center gap-2 rounded-lg bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-300"
+    >
+      <LogIn size={14} /> Entrar com Google
+    </Link>
   );
 }
 
@@ -128,6 +279,23 @@ function BottomNav() {
         );
       })}
     </nav>
+  );
+}
+
+function SidebarSubjectBadge() {
+  const cur = useGame((s) => s.currentSubject);
+  const info = SUBJECTS.find((s) => s.id === cur) ?? SUBJECTS[0];
+  return (
+    <Link href="/escolher" className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-2 hover:bg-[var(--bg-elev)] transition">
+      <div className="flex items-center gap-2 px-1">
+        <span className="text-2xl">{info.emoji}</span>
+        <div>
+          <div className="text-[9px] font-bold uppercase text-[var(--muted)]">Matéria</div>
+          <div className="text-sm font-bold leading-tight">{info.label}</div>
+        </div>
+      </div>
+      <span className="text-[10px] font-semibold text-indigo-600">trocar →</span>
+    </Link>
   );
 }
 

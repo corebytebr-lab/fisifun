@@ -1,0 +1,263 @@
+// FisiFun database schema
+// Auth + admin + per-user gameplay state synced to Postgres
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+  SCHOOL_MANAGER  // gestor de escola: vê painel da própria turma
+}
+
+enum Plan {
+  TRIAL      // 7 dias grátis
+  ALUNO      // R$59,90/m — 1 matéria
+  TOTAL      // R$99,90/m — 4 matérias
+  PREMIUM    // R$149,90/m — 4 matérias + IA ilimitada
+  ANUAL      // R$799/ano — equivale a TOTAL
+  TRIENAL    // R$1997 / 3 anos — equivale a TOTAL
+  FAMILIA    // R$199/m — até 4 contas, equivale a TOTAL
+  ESCOLA     // R$25/aluno/m — turma B2B
+  BLOCKED    // bloqueado pelo admin
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  passwordHash    String
+  role            Role      @default(STUDENT)
+  active          Boolean   @default(true)
+  classGroup      String?   // optional turma label
+  plan            Plan      @default(TRIAL)
+  planUntil       DateTime? // quando o plano expira; null = sem expiração
+  subjectsAllowed String[]  @default([]) // só usado pra ALUNO; demais planos liberam tudo
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLoginAt     DateTime?
+
+  // FAMILY plan: owner has familyOwnerId == null; members have familyOwnerId == owner.id
+  familyOwnerId   String?
+  familyOwner     User?     @relation("FamilyMembers", fields: [familyOwnerId], references: [id], onDelete: SetNull)
+  familyMembers   User[]    @relation("FamilyMembers")
+
+  // SCHOOL plan: students have schoolOwnerId == manager's id
+  schoolOwnerId   String?
+  schoolOwner     User?     @relation("SchoolStudents", fields: [schoolOwnerId], references: [id], onDelete: SetNull)
+  schoolStudents  User[]    @relation("SchoolStudents")
+
+  // School manager-only: how many student slots they can issue and when their package expires
+  schoolSlots     Int?      // null = not a manager. Set when admin creates the manager.
+  schoolUntil     DateTime? // package expires; nulls students once past
+
+  // Persisted gameplay state (single row per user, JSON blob mirroring zustand)
+  state         UserState?
+
+  // Per-record granular tables (queryable for admin/dashboard)
+  attempts      Attempt[]
+  wrongs        Wrong[]
+  srsItems      SrsItem[]
+  notes         Note[]
+  professorRuns ProfessorRun[]
+  authLogs      AuthLog[]
+  auditLogs     AuditLog[]   @relation("AuditActor")
+  inboxMessages InboxMessage[]
+
+  @@index([role])
+  @@index([active])
+  @@index([classGroup])
+  @@index([plan])
+  @@index([familyOwnerId])
+  @@index([schoolOwnerId])
+}
+
+model UserState {
+  userId        String  @id
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data          Json    // mirror of zustand persisted state
+  level         Int     @default(1)
+  xp            Int     @default(0)
+  coins         Int     @default(0)
+  streak        Int     @default(0)
+  hearts        Int     @default(5)
+  currentSubject String  @default("fisica")
+  totalStudyMin Int     @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+model Attempt {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId  String
+  chapterId   String
+  lessonId    String
+  subject     String
+  correct     Boolean
+  concept     String?
+  at          DateTime @default(now())
+
+  @@index([userId, at])
+  @@index([userId, subject])
+  @@index([chapterId])
+}
+
+model Wrong {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId  String
+  chapterId   String
+  lessonId    String
+  subject     String
+  prompt      String
+  concept     String?
+  at          DateTime @default(now())
+
+  @@unique([userId, exerciseId])
+  @@index([userId])
+}
+
+model SrsItem {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId          String   // exerciseId or formulaId
+  kind            String   // "exercise" | "formula"
+  ease            Float    @default(2.5)
+  interval        Int      @default(0)
+  correctStreak   Int      @default(0)
+  lapses          Int      @default(0)
+  dueDate         DateTime @default(now())
+  lastReview      DateTime?
+
+  @@unique([userId, itemId, kind])
+  @@index([userId, dueDate])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String   @db.Text
+  chapterId String?
+  lessonId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ProfessorRun {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic       String
+  subject     String
+  rating      Int?     // 0..100 (avaliação dos Lumers)
+  durationS   Int?
+  transcript  String?  @db.Text
+  at          DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Notice {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @db.Text
+  kind      String   @default("info") // info, warning, success
+  active    Boolean  @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  audience  String   @default("all")  // all | role | classGroup:<name>
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InboxMessage {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromUserId  String?
+  subject     String
+  body        String   @db.Text
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+model AuthLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  success   Boolean
+  ip        String?
+  ua        String?
+  at        DateTime @default(now())
+
+  @@index([userId, at])
+  @@index([email])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action    String
+  target    String?
+  meta      Json?
+  at        DateTime @default(now())
+
+  @@index([actorId, at])
+  @@index([action])
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model MagicLinkToken {
+  id        String   @id @default(cuid())
+  email     String
+  tokenHash String   @unique // sha256 of the raw token, never stores raw
+  purpose   String   @default("login") // "login" | "reset" | "welcome"
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  ip        String?
+  ua        String?
+
+  @@index([email, expiresAt])
+}
+
+// Vídeo de capítulo (YouTube embed). N vídeos por chapterId, ordenados.
+// chapterId é o id estático do conteúdo (ex: "cap01", "cap01q", "cap01ga", "cap01c").
+model ChapterVideo {
+  id          String   @id @default(cuid())
+  chapterId   String
+  subject     String   // "fisica" | "quimica" | "ga" | "calculo"
+  youtubeId   String   // 11 chars do YouTube (ex: "dQw4w9WgXcQ")
+  title       String?  // título opcional ("Aula 1: ...")
+  description String?  // descrição opcional
+  durationSec Int?
+  position    Int      @default(0) // ordem de exibição dentro do capítulo (0 = primeiro)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@index([chapterId, position])
+  @@index([subject])
+}

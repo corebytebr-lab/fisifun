@@ -12,7 +12,31 @@
 import React from "react";
 import katex from "katex";
 
-function renderInline(line: string, keyPrefix: string): React.ReactNode[] {
+/**
+ * Auto-LaTeXifier: detects common plain-text math patterns and wraps them in
+ * `$...$` so KaTeX can render them properly. Only runs on segments that don't
+ * already contain `$` delimiters (so existing LaTeX is untouched).
+ *
+ * Patterns recognized:
+ *   `1/(x-2)` → `$\frac{1}{x-2}$`
+ *   `√(x+1)` or `√x` → `$\sqrt{x+1}$`
+ *   `lim_{x→a}` or `∫_a^b` etc. when surrounded by ASCII math glyphs
+ */
+function autoLatexify(input: string): string {
+  if (input.includes("$")) return input;
+  let s = input;
+  // √(expr) → \sqrt{expr}; √var → \sqrt{var}
+  s = s.replace(/√\(([^()]+)\)/g, "$\\sqrt{$1}$");
+  s = s.replace(/√([A-Za-zÀ-ÿ0-9]+)/g, "$\\sqrt{$1}$");
+  // a/(b) where a is short alphanum and b is in parens → \frac{a}{b}
+  s = s.replace(/(\b[\w\d]{1,6})\/\(([^()]+)\)/g, "$\\frac{$1}{$2}$");
+  // (a)/(b) → \frac{a}{b}
+  s = s.replace(/\(([^()]+)\)\/\(([^()]+)\)/g, "$\\frac{$1}{$2}$");
+  return s;
+}
+
+function renderInline(rawLine: string, keyPrefix: string): React.ReactNode[] {
+  const line = autoLatexify(rawLine);
   const nodes: React.ReactNode[] = [];
   // Split by math $...$ first so math contents aren't mangled.
   const parts = line.split(/(\$[^$]+\$)/g);

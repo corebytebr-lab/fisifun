@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { CHAPTERS } from "@/content/index";
+import { chaptersBySubject } from "@/content/index";
+import { SUBJECTS } from "@/lib/types";
 import { useGame } from "@/lib/store";
-import {  } from "react";
+import { useMemo } from "react";
 import { Lock, Check } from "lucide-react";
 import { useHydrated } from "@/lib/useHydrated";
 
@@ -12,17 +13,34 @@ export default function TrilhaPage() {
 
   const progress = useGame((s) => s.lessonProgress);
   const chapterUnlocked = useGame((s) => s.chapterUnlocked);
+  const currentSubject = useGame((s) => s.currentSubject);
+  const setCurrentSubject = useGame((s) => s.setCurrentSubject);
+  const list = useMemo(() => chaptersBySubject(currentSubject), [currentSubject]);
+  const subjectInfo = SUBJECTS.find((s) => s.id === currentSubject) ?? SUBJECTS[0];
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-4 md:px-8">
       <header>
         <h1 className="text-2xl font-extrabold md:text-3xl">Trilha de aprendizado</h1>
-        <p className="text-sm text-[var(--muted)]">Mecânica — Halliday Vol. 1</p>
+        <p className="text-sm text-[var(--muted)]">{subjectInfo.label} — {subjectInfo.description}</p>
       </header>
 
+      <div className="flex flex-wrap gap-2">
+        {SUBJECTS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => setCurrentSubject(s.id)}
+            className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold ${currentSubject === s.id ? "border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300" : "border-[var(--border)] hover:bg-[var(--bg)]"}`}
+          >
+            <span>{s.emoji}</span> {s.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col gap-8">
-        {CHAPTERS.map((c, chIdx) => {
-          const prevChapter = CHAPTERS[chIdx - 1];
+        {list.map((c, chIdx) => {
+          const prevChapter = list[chIdx - 1];
           const prevDone = !prevChapter || prevChapter.lessons.every((l) => progress[`${prevChapter.id}/${l.id}`]?.completed);
           const unlocked = chIdx === 0 || chapterUnlocked[c.id] || prevDone;
           return (
@@ -107,6 +125,7 @@ function kindEmoji(k: string) {
     case "practice": return "✏️";
     case "quiz": return "🏆";
     case "challenge": return "⚡";
+    case "halliday": return "📗";
     default: return "▶";
   }
 }
@@ -118,6 +137,7 @@ function labelKind(k: string) {
     case "practice": return "Prática";
     case "quiz": return "Quiz";
     case "challenge": return "Desafio";
+    case "halliday": return "Problemas do livro";
     default: return "Lição";
   }
 }

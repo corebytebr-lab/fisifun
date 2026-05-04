@@ -20,7 +20,7 @@ export default function RevisaoPage() {
   const [idx, setIdx] = useState(0);
   const [correct, setCorrect] = useState(0);
 
-  const all = useMemo(() => allExercises(), []);
+  const all = useMemo(() => allExercises(state.currentSubject), [state.currentSubject]);
 
   const wrongItems = useMemo(() => {
     if (!mounted) return [];

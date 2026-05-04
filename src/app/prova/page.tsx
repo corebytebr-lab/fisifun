@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CHAPTERS, allExercises } from "@/content/index";
+import { chaptersBySubject, allExercises } from "@/content/index";
+import { SUBJECTS } from "@/lib/types";
 import { Card, CardTitle, CardSubtitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ExerciseRunner } from "@/components/exercicios/ExerciseRunner";
@@ -21,7 +22,10 @@ export default function ProvaPage() {
   const [answers, setAnswers] = useState<boolean[]>([]);
   const state = useGame();
 
-  const all = useMemo(() => allExercises(), []);
+  const currentSubject = state.currentSubject;
+  const subjectChapters = useMemo(() => chaptersBySubject(currentSubject), [currentSubject]);
+  const subjectInfo = SUBJECTS.find((s) => s.id === currentSubject) ?? SUBJECTS[0];
+  const all = useMemo(() => allExercises(currentSubject), [currentSubject]);
 
   function start(chapterIds: string[]) {
     const pool = chapterIds.length > 0 ? all.filter((x) => chapterIds.includes(x.chapterId)) : all;
@@ -45,6 +49,7 @@ export default function ProvaPage() {
           <GraduationCap /> Modo Prova
         </h1>
         <p className="text-sm text-[var(--muted)]">Simulado sem dicas. Confira o resultado no final.</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">Matéria: <span className="font-bold text-[var(--fg)]">{subjectInfo.emoji} {subjectInfo.label}</span></p>
       </div>
 
       {mode === "select" && (
@@ -52,7 +57,7 @@ export default function ProvaPage() {
           <CardTitle>Monte seu simulado</CardTitle>
           <CardSubtitle>Selecione os capítulos que entram na prova.</CardSubtitle>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {CHAPTERS.map((c) => {
+            {subjectChapters.map((c) => {
               const active = selected.has(c.id);
               return (
                 <button

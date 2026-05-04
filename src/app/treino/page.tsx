@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { allExercises, CHAPTERS } from "@/content/index";
+import { allExercises, chaptersBySubject } from "@/content/index";
+import { SUBJECTS } from "@/lib/types";
 import { Card, CardTitle, CardSubtitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ExerciseRunner } from "@/components/exercicios/ExerciseRunner";
@@ -32,7 +33,10 @@ export default function TreinoPage() {
     return () => clearInterval(id);
   }, [mode, remaining]);
 
-  const all = useMemo(() => allExercises(), []);
+  const currentSubject = state.currentSubject;
+  const subjectChapters = useMemo(() => chaptersBySubject(currentSubject), [currentSubject]);
+  const subjectInfo = SUBJECTS.find((s) => s.id === currentSubject) ?? SUBJECTS[0];
+  const all = useMemo(() => allExercises(currentSubject), [currentSubject]);
 
   function start(limit: number = 10, chapterId?: string) {
     const pool = all.filter((x) => !chapterId || chapterId === "all" || x.chapterId === chapterId);
@@ -57,7 +61,15 @@ export default function TreinoPage() {
           <Dumbbell /> Modo Treino
         </h1>
         <p className="text-sm text-[var(--muted)]">Sessão rápida de exercícios, com cronômetro opcional.</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">Matéria: <span className="font-bold text-[var(--fg)]">{subjectInfo.emoji} {subjectInfo.label}</span></p>
       </div>
+
+      {mode === "select" && all.length === 0 && (
+        <Card>
+          <CardTitle>Sem exercícios para esta matéria ainda</CardTitle>
+          <CardSubtitle>Troque a matéria pela barra lateral ou volte mais tarde.</CardSubtitle>
+        </Card>
+      )}
 
       {mode === "select" && (
         <Card>
@@ -65,7 +77,7 @@ export default function TreinoPage() {
           <CardSubtitle>Escolha o capítulo e a quantidade.</CardSubtitle>
           <div className="mt-3 flex flex-wrap gap-1.5">
             <FilterChip value="all" active={filter === "all"} onClick={() => setFilter("all")}>Todos</FilterChip>
-            {CHAPTERS.map((c) => (
+            {subjectChapters.map((c) => (
               <FilterChip key={c.id} value={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
                 {c.emoji} {c.number}
               </FilterChip>
