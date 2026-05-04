@@ -8,15 +8,40 @@ import { Card, CardTitle, CardSubtitle } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/Progress";
 import { Button } from "@/components/ui/Button";
 import { RichText, InlineMath } from "@/lib/format";
-import { ChevronLeft, Check, Play, AlertTriangle, Target, BookOpen } from "lucide-react";
-import {  } from "react";
+import { ChevronLeft, Check, Play, AlertTriangle, Target, BookOpen, Video as VideoIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useHydrated } from "@/lib/useHydrated";
+
+interface ChapterVideoLite {
+  id: string;
+  youtubeId: string;
+  title: string | null;
+  description: string | null;
+}
 
 export default function ChapterClient() {
   const params = useParams<{ chapterId: string }>();
   const mounted = useHydrated();
   const chapter = findChapter(params.chapterId);
   const progress = useGame((s) => s.lessonProgress);
+  const [videos, setVideos] = useState<ChapterVideoLite[]>([]);
+  const [activeVideo, setActiveVideo] = useState<number>(0);
+
+  useEffect(() => {
+    if (!params.chapterId) return;
+    let alive = true;
+    fetch(`/api/chapter-video?chapterId=${encodeURIComponent(params.chapterId)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (!alive) return;
+        setVideos(j.videos || []);
+        setActiveVideo(0);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [params.chapterId]);
 
   if (!chapter) return <div className="p-4">Capítulo não encontrado.</div>;
 
@@ -44,6 +69,46 @@ export default function ChapterClient() {
           <div className="mt-1 text-xs opacity-90">{done}/{chapter.lessons.length} lições concluídas</div>
         </div>
       </Card>
+
+      {videos.length > 0 && (
+        <Card>
+          <CardTitle className="flex items-center gap-2"><VideoIcon size={18} /> Vídeo-aulas</CardTitle>
+          <div className="mt-2 aspect-video w-full overflow-hidden rounded-xl bg-black">
+            <iframe
+              key={videos[activeVideo]?.youtubeId}
+              src={`https://www.youtube.com/embed/${videos[activeVideo]?.youtubeId}?rel=0&modestbranding=1`}
+              title={videos[activeVideo]?.title || "Vídeo do capítulo"}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="h-full w-full"
+            />
+          </div>
+          {videos[activeVideo]?.description && (
+            <p className="mt-2 text-sm text-[var(--muted)]">{videos[activeVideo].description}</p>
+          )}
+          {videos.length > 1 && (
+            <div className="mt-3 flex flex-col gap-1.5">
+              {videos.map((v, i) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setActiveVideo(i)}
+                  className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition ${
+                    i === activeVideo
+                      ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
+                      : "hover:bg-[var(--bg-elev)]"
+                  }`}
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold">
+                    {i + 1}
+                  </span>
+                  <span className="truncate">{v.title || `Vídeo ${i + 1}`}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

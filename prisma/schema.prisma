@@ -243,3 +243,21 @@ model MagicLinkToken {
 
   @@index([email, expiresAt])
 }
+
+// Vídeo de capítulo (YouTube embed). N vídeos por chapterId, ordenados.
+// chapterId é o id estático do conteúdo (ex: "cap01", "cap01q", "cap01ga", "cap01c").
+model ChapterVideo {
+  id          String   @id @default(cuid())
+  chapterId   String
+  subject     String   // "fisica" | "quimica" | "ga" | "calculo"
+  youtubeId   String   // 11 chars do YouTube (ex: "dQw4w9WgXcQ")
+  title       String?  // título opcional ("Aula 1: ...")
+  description String?  // descrição opcional
+  durationSec Int?
+  position    Int      @default(0) // ordem de exibição dentro do capítulo (0 = primeiro)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@index([chapterId, position])
+  @@index([subject])
+}

@@ -3,6 +3,10 @@ import { verifyTokenEdge, SESSION_COOKIE } from "@/lib/auth";
 
 const PUBLIC_PATHS = new Set([
   "/login",
+  "/precos",
+  "/sobre",
+  "/termos",
+  "/privacidade",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/magic-link",
