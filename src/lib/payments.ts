@@ -14,7 +14,6 @@ export interface KiwifyConfig {
     total?: string;
     premium?: string;
     anual?: string;
-    trienal?: string;
     familia?: string;
     escola?: string;
   };
@@ -57,7 +56,6 @@ export async function setKiwifyConfig(patch: Partial<KiwifyConfig>): Promise<Kiw
 /** Heuristic: try to detect a Plan from a Kiwify product name when no explicit map exists. */
 export function planFromProductName(name: string): Plan | null {
   const n = (name || "").toLowerCase();
-  if (n.includes("3 anos") || n.includes("trienal") || n.includes("3-anos")) return "TRIENAL";
   if (n.includes("anual")) return "ANUAL";
   if (n.includes("família") || n.includes("familia")) return "FAMILIA";
   if (n.includes("escola")) return "ESCOLA";
@@ -140,9 +138,17 @@ export async function applyPaidOrder(args: {
     });
   }
 
+  // For FAMILIA: cascade planUntil to all linked members so they renew together.
+  if (args.plan === "FAMILIA" && user.planUntil) {
+    await prisma.user.updateMany({
+      where: { familyOwnerId: user.id },
+      data: { planUntil: user.planUntil, plan: "FAMILIA", active: true },
+    });
+  }
+
   await prisma.auditLog.create({
     data: {
-      actorId: "system",
+      actorId: null,
       action: "payment.applied",
       target: user.id,
       meta: {

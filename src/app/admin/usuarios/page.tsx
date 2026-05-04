@@ -24,7 +24,6 @@ const PLAN_OPTIONS: { value: string; label: string; needSubject?: boolean; days:
   { value: "TOTAL", label: "Total R$99,90/m (4 matérias)", days: 30 },
   { value: "PREMIUM", label: "Premium R$149,90/m", days: 30 },
   { value: "ANUAL", label: "Anual R$799 (1 ano)", days: 365 },
-  { value: "TRIENAL", label: "3 Anos R$1.997", days: 365 * 3 },
   { value: "FAMILIA", label: "Família R$199/m", days: 30 },
   { value: "ESCOLA", label: "Escola B2B", days: 30 },
   { value: "BLOCKED", label: "Bloqueado", days: null },

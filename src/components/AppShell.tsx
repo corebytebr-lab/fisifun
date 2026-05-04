@@ -22,6 +22,8 @@ import {
   LogOut,
   Settings,
   Shield,
+  Users,
+  School,
 } from "lucide-react";
 import { useGame } from "@/lib/store";
 import { SUBJECTS } from "@/lib/types";
@@ -167,6 +169,30 @@ function Sidebar() {
           >
             <Settings size={18} /> Configurações
           </Link>
+          {(user?.plan === "FAMILIA") && (
+            <Link
+              href="/familia"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                pathname.startsWith("/familia")
+                  ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
+                  : "text-[var(--muted)] hover:bg-[var(--bg)]"
+              }`}
+            >
+              <Users size={18} /> Família
+            </Link>
+          )}
+          {(user?.role === "SCHOOL_MANAGER" || user?.role === "ADMIN") && user?.schoolSlots != null && (
+            <Link
+              href="/escola"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition ${
+                pathname.startsWith("/escola")
+                  ? "bg-emerald-500/15 text-emerald-600"
+                  : "text-emerald-600 hover:bg-emerald-500/10"
+              }`}
+            >
+              <School size={18} /> Painel da Escola
+            </Link>
+          )}
           {user?.role === "ADMIN" && (
             <Link
               href="/admin"

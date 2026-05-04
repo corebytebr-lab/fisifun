@@ -126,7 +126,7 @@ export function resolvePlan(args: {
   plan: Plan;
   planUntil: Date | string | null;
   subjectsAllowed: string[];
-  role: "ADMIN" | "TEACHER" | "STUDENT";
+  role: "ADMIN" | "TEACHER" | "STUDENT" | "SCHOOL_MANAGER";
 }): PlanRuntime {
   if (args.role === "ADMIN" || args.role === "TEACHER") {
     return {

@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 export interface MeUser {
   id: string;
   email: string;
-  role: "ADMIN" | "TEACHER" | "STUDENT";
+  role: "ADMIN" | "TEACHER" | "STUDENT" | "SCHOOL_MANAGER";
   name: string | null;
   plan: string;
   planUntil: string | null;
   subjectsAllowed: string[];
+  familyOwnerId?: string | null;
+  schoolSlots?: number | null;
   runtime: {
     plan: string;
     expired: boolean;

@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const WHATS_BASE = "https://wa.me/5561991770953?text=";
-type PlanKey = "trial" | "aluno" | "total" | "premium" | "anual" | "familia" | "trienal";
+type PlanKey = "trial" | "aluno" | "total" | "premium" | "anual" | "familia";
 const PLANS_DISPLAY: { key: PlanKey; name: string; price: string; desc: string; color: string }[] = [
   { key: "trial", name: "Trial 3 dias", price: "Grátis", desc: "3 dias com tudo do Total liberado", color: "from-amber-400 to-orange-500" },
   { key: "aluno", name: "Aluno", price: "R$59,90/mês", desc: "1 matéria · 30 perguntas IA/mês", color: "from-sky-500 to-cyan-500" },
@@ -12,7 +12,6 @@ const PLANS_DISPLAY: { key: PlanKey; name: string; price: string; desc: string; 
   { key: "premium", name: "Premium", price: "R$149,90/mês", desc: "Tudo + IA ilimitada + prioridade", color: "from-violet-500 to-fuchsia-500" },
   { key: "anual", name: "Anual", price: "R$799/ano", desc: "12 meses do Total (~33% off)", color: "from-emerald-500 to-teal-500" },
   { key: "familia", name: "Família", price: "R$199/mês", desc: "Até 4 contas com Total", color: "from-rose-500 to-pink-500" },
-  { key: "trienal", name: "3 Anos", price: "R$1.997 (uma vez)", desc: "Total por 36 meses", color: "from-fuchsia-500 to-purple-600" },
 ];
 
 export default function LoginPage() {
@@ -234,6 +233,14 @@ function LoginInner() {
               </p>
             </div>
           )}
+          <a
+            href={`${WHATS_BASE}${encodeURIComponent("Olá! Sou de uma escola/cursinho e quero contratar o plano Escola do FisiFun (20+ alunos).")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 py-2 text-center text-sm font-bold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950 dark:text-emerald-300"
+          >
+            🏫 Sou escola — 20+ alunos
+          </a>
           <a
             href={`${WHATS_BASE}${encodeURIComponent("Olá! Quero falar sobre o FisiFun")}`}
             target="_blank"

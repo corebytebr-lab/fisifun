@@ -49,6 +49,16 @@ export async function proxy(req: NextRequest) {
     }
   }
 
+  // /escola/ panel: only SCHOOL_MANAGER and ADMIN
+  if (pathname.startsWith("/escola") || pathname.startsWith("/api/school")) {
+    if (session.role !== "SCHOOL_MANAGER" && session.role !== "ADMIN") {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
+
   // Plan expiration: if planUntil < now and not ADMIN/TEACHER, force renew
   if (session.role === "STUDENT" && session.planUntil) {
     const until = Date.parse(session.planUntil);

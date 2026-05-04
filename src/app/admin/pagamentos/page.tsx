@@ -14,7 +14,6 @@ const PLAN_LINKS: { key: string; label: string; price: string }[] = [
   { key: "total", label: "Total", price: "R$ 99,90/mês" },
   { key: "premium", label: "Premium", price: "R$ 149,90/mês" },
   { key: "anual", label: "Anual", price: "R$ 799,00 (1 ano)" },
-  { key: "trienal", label: "3 Anos", price: "R$ 1.997,00 (3 anos)" },
   { key: "familia", label: "Família", price: "R$ 199,00/mês" },
   { key: "escola", label: "Escola B2B", price: "R$ 25,00/aluno/mês" },
 ];

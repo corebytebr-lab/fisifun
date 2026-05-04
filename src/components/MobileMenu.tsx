@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, X, Settings, Shield, LogOut } from "lucide-react";
+import { Menu, X, Settings, Shield, LogOut, Users, School } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useMe } from "@/lib/useMe";
 
@@ -101,6 +101,22 @@ export function MobileMenu({ primary, extra }: MobileMenuProps) {
                 >
                   <Settings size={16} /> Configurações
                 </Link>
+                {user?.plan === "FAMILIA" && (
+                  <Link
+                    href="/familia"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[var(--fg)] hover:bg-[var(--bg)]"
+                  >
+                    <Users size={16} /> Família
+                  </Link>
+                )}
+                {(user?.role === "SCHOOL_MANAGER" || (user?.role === "ADMIN" && user?.schoolSlots != null)) && (
+                  <Link
+                    href="/escola"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold text-emerald-600 hover:bg-emerald-500/10"
+                  >
+                    <School size={16} /> Painel Escola
+                  </Link>
+                )}
                 {isAdmin && (
                   <Link
                     href="/admin"

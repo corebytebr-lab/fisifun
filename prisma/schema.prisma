@@ -14,6 +14,7 @@ enum Role {
   STUDENT
   TEACHER
   ADMIN
+  SCHOOL_MANAGER  // gestor de escola: vê painel da própria turma
 }
 
 enum Plan {
@@ -43,6 +44,20 @@ model User {
   updatedAt       DateTime  @updatedAt
   lastLoginAt     DateTime?
 
+  // FAMILY plan: owner has familyOwnerId == null; members have familyOwnerId == owner.id
+  familyOwnerId   String?
+  familyOwner     User?     @relation("FamilyMembers", fields: [familyOwnerId], references: [id], onDelete: SetNull)
+  familyMembers   User[]    @relation("FamilyMembers")
+
+  // SCHOOL plan: students have schoolOwnerId == manager's id
+  schoolOwnerId   String?
+  schoolOwner     User?     @relation("SchoolStudents", fields: [schoolOwnerId], references: [id], onDelete: SetNull)
+  schoolStudents  User[]    @relation("SchoolStudents")
+
+  // School manager-only: how many student slots they can issue and when their package expires
+  schoolSlots     Int?      // null = not a manager. Set when admin creates the manager.
+  schoolUntil     DateTime? // package expires; nulls students once past
+
   // Persisted gameplay state (single row per user, JSON blob mirroring zustand)
   state         UserState?
 
@@ -60,6 +75,8 @@ model User {
   @@index([active])
   @@index([classGroup])
   @@index([plan])
+  @@index([familyOwnerId])
+  @@index([schoolOwnerId])
 }
 
 model UserState {
