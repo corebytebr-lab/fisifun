@@ -19,10 +19,19 @@ export interface KiwifyConfig {
   };
 }
 
+/** Default Kiwify checkout URLs (CoreByte/FisiFun production). Used when admin hasn't overridden. */
+const DEFAULT_LINKS = {
+  aluno: "https://pay.kiwify.com.br/QNYIJTk",
+  total: "https://pay.kiwify.com.br/XSn7Pgl",
+  premium: "https://pay.kiwify.com.br/Z7tJdHL",
+  familia: "https://pay.kiwify.com.br/hyJud91",
+  anual: "https://pay.kiwify.com.br/yV51NyY",
+} as const;
+
 const DEFAULT: KiwifyConfig = {
   webhookSecret: "",
   productMap: {},
-  links: {},
+  links: { ...DEFAULT_LINKS },
 };
 
 const KEY = "kiwify-config";
