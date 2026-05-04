@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Termos de Uso — FisiFun",
+  title: "Termos de Uso",
   description: "Termos de uso do FisiFun, app de estudos gamificado.",
   alternates: { canonical: "/termos" },
   robots: { index: true, follow: true },

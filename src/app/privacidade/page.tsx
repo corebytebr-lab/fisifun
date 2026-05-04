@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidade — FisiFun",
+  title: "Política de Privacidade",
   description: "Política de privacidade do FisiFun. Quais dados coletamos e como usamos.",
   alternates: { canonical: "/privacidade" },
   robots: { index: true, follow: true },

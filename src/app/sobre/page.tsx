@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Sobre o FisiFun — Estude Física, Química, Cálculo e GA gamificado",
+  title: "Sobre — Estude Física, Química, Cálculo e GA gamificado",
   description:
     "FisiFun é o app de estudos gamificado pra Física, Química, Cálculo 1 e Geometria Analítica. Trilhas, XP, IA tutora, exercícios resolvidos e revisão espaçada. Ideal pra Enem, vestibular e engenharia.",
   alternates: { canonical: "/sobre" },

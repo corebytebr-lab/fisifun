@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Preços e Planos — FisiFun",
+  title: "Preços e Planos",
   description:
     "Veja todos os planos do FisiFun: Aluno R$59,90, Total R$99,90, Premium R$149,90, Família R$199 e Anual R$799. Comece grátis 3 dias com tudo liberado.",
   alternates: { canonical: "/precos" },
