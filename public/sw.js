@@ -1,5 +1,5 @@
 // FisiFun service worker — offline-first para app shell estático.
-const VERSION = "fisifun-v2";
+const VERSION = "fisifun-v3";
 const CORE = ["/", "/trilha/", "/formulas/", "/flashcards/", "/notas/", "/plano/", "/calc/", "/duvida/", "/conquistas/", "/perfil/", "/configuracoes/", "/estatisticas/", "/treino/", "/revisao/", "/prova/"];
 
 self.addEventListener("install", (event) => {
@@ -24,6 +24,10 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   // Nunca cachear chamadas pra Google/Gemini
   if (url.hostname.includes("googleapis.com")) return;
+  // Nunca cachear /api/ — sempre rede direto (dados sempre frescos)
+  if (url.pathname.startsWith("/api/")) return;
+  // Nunca cachear chunks/HMR do Next dev/turbopack
+  if (url.pathname.startsWith("/_next/")) return;
 
   // Navegações → network first, fallback pro cache
   if (request.mode === "navigate") {
@@ -39,7 +43,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Assets → cache first
+  // Assets estáticos → cache first
   if (url.origin === self.location.origin) {
     event.respondWith(
       caches.match(request).then((cached) => {
